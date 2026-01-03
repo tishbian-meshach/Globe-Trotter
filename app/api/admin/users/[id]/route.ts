@@ -83,7 +83,7 @@ export async function PUT(
                     action: action === 'suspend' ? 'user_suspended' : 'user_unsuspended',
                     entityType: 'user',
                     entityId: id,
-                    adminId: session.user!.id,
+                    adminId: session?.user?.id || '',
                     details: `${action === 'suspend' ? 'Suspended' : 'Unsuspended'} user: ${user.email}`
                 }
             });
@@ -109,7 +109,7 @@ export async function PUT(
                     action: 'user_password_reset',
                     entityType: 'user',
                     entityId: id,
-                    adminId: session.user!.id,
+                    adminId: session?.user?.id || '',
                     details: `Reset password for user: ${user.email}`
                 }
             });
