@@ -31,12 +31,6 @@ const currencyOptions = [
     { value: 'INR', label: 'Indian Rupee (INR)' },
 ];
 
-const privacyOptions = [
-    { value: 'private', label: 'Private (Only you)' },
-    { value: 'friends', label: 'Friends' },
-    { value: 'public', label: 'Public (Everyone)' },
-];
-
 export default function SettingsPage() {
     const sessionData = useSession();
     const session = sessionData?.data;
@@ -47,7 +41,6 @@ export default function SettingsPage() {
     const [name, setName] = useState(session?.user?.name || '');
     const [language, setLanguage] = useState('en');
     const [currency, setCurrency] = useState('USD');
-    const [privacy, setPrivacy] = useState('private');
 
     const handleSaveProfile = async () => {
         setIsLoading(true);
@@ -77,7 +70,7 @@ export default function SettingsPage() {
             const response = await fetch('/api/user/preferences', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ language, currency, privacy }),
+                body: JSON.stringify({ language, currency }),
             });
 
             if (!response.ok) throw new Error('Failed to save');
@@ -170,13 +163,6 @@ export default function SettingsPage() {
                         options={currencyOptions}
                         value={currency}
                         onChange={setCurrency}
-                    />
-
-                    <Dropdown
-                        label="Default Privacy"
-                        options={privacyOptions}
-                        value={privacy}
-                        onChange={setPrivacy}
                     />
 
                     <div className="flex gap-3">

@@ -49,15 +49,30 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         strategy: 'jwt',
     },
     callbacks: {
-        async jwt({ token, user }) {
+        async jwt({ token, user, trigger }) {
             if (user) {
                 token.id = user.id;
+                // Fetch user data to get isAdmin and role only on sign in
+                try {
+                    const dbUser = await prisma.user.findUnique({
+                        where: { id: user.id },
+                        include: { role: true }
+                    });
+                    token.isAdmin = dbUser?.isAdmin || false;
+                    token.role = dbUser?.role?.name || null;
+                } catch (error) {
+                    console.error('Failed to fetch user role:', error);
+                    token.isAdmin = false;
+                    token.role = null;
+                }
             }
             return token;
         },
         async session({ session, token }) {
             if (session.user) {
                 session.user.id = token.id as string;
+                session.user.isAdmin = token.isAdmin as boolean || false;
+                session.user.role = token.role as string | null;
             }
             return session;
         },

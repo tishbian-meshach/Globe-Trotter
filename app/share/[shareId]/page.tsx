@@ -30,7 +30,7 @@ export default async function SharedTripPage({ params }: PageProps) {
         },
     });
 
-    if (!sharedTrip || !sharedTrip.isPublic) {
+    if (!sharedTrip) {
         notFound();
     }
 

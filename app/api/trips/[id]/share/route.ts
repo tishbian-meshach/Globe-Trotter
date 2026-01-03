@@ -46,7 +46,7 @@ export async function POST(
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 
-        const { isPublic, canCopy } = await request.json();
+        const { canCopy } = await request.json();
 
         // Generate unique share ID
         const shareId = Math.random().toString(36).substring(2, 15) +
@@ -56,7 +56,7 @@ export async function POST(
             data: {
                 tripId: params.id,
                 shareId,
-                isPublic,
+                isPublic: true, // All shared trips are accessible via link
                 canCopy,
             },
         });
@@ -64,30 +64,6 @@ export async function POST(
         return NextResponse.json(sharedTrip);
     } catch (error) {
         console.error('Create shared trip error:', error);
-        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-    }
-}
-
-export async function PUT(
-    request: NextRequest,
-    { params }: { params: { id: string } }
-) {
-    try {
-        const session = await auth();
-        if (!session?.user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
-
-        const { isPublic } = await request.json();
-
-        const sharedTrip = await prisma.sharedTrip.update({
-            where: { tripId: params.id },
-            data: { isPublic },
-        });
-
-        return NextResponse.json(sharedTrip);
-    } catch (error) {
-        console.error('Update shared trip error:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }

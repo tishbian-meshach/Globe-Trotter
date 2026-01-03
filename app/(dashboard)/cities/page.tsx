@@ -1,24 +1,24 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { motion } from 'framer-motion';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Dropdown } from '@/components/ui/Dropdown';
-import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Loading } from '@/components/ui/Spinner';
 import { useToast } from '@/components/ui/Toast';
-import { ImageUpload } from '@/components/ui/ImageUpload';
+import { CityEditModal } from '@/components/modals/CityEditModal';
 import { CityDetailsModal } from '@/components/modals/CityDetailsModal';
-import { FaBookmark, FaRegBookmark, FaEdit } from 'react-icons/fa';
+import { FaBookmark, FaRegBookmark } from 'react-icons/fa';
 
 interface City {
     id: string;
     name: string;
     country: string;
-    region: string;
+    region?: string | null;
     description: string | null;
     costIndex: number;
     popularity: number;
@@ -27,6 +27,7 @@ interface City {
 }
 
 export default function CitiesPage() {
+    const { data: session } = useSession();
     const [cities, setCities] = useState<City[]>([]);
     const [filteredCities, setFilteredCities] = useState<City[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -34,19 +35,12 @@ export default function CitiesPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [regionFilter, setRegionFilter] = useState('all');
 
-    // Create Modal State
-    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [newCity, setNewCity] = useState<Partial<City>>({
-        name: '',
-        country: '',
-        region: '',
-        description: '',
-        costIndex: 50,
-        popularity: 50,
-        imageUrl: ''
-    });
-    const [isSaving, setIsSaving] = useState(false);
-    const [editingId, setEditingId] = useState<string | null>(null);
+    // Check if user is admin
+    const isAdmin = session?.user?.isAdmin || false;
+
+    // Edit Modal State
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editCity, setEditCity] = useState<Partial<City> | null>(null);
 
     // Detail Modal State
     const [viewingCity, setViewingCity] = useState<City | null>(null);
@@ -131,7 +125,7 @@ export default function CitiesPage() {
         setFilteredCities(filtered);
     };
 
-    const regions = ['all', ...Array.from(new Set(cities.map((c) => c.region)))].filter(Boolean);
+    const regions = ['all', ...Array.from(new Set(cities.map((c) => c.region).filter((r): r is string => r != null)))];
     const regionOptions = regions.map((r) => ({
         value: r,
         label: r === 'all' ? 'All Regions' : r,
@@ -143,51 +137,48 @@ export default function CitiesPage() {
         return { label: 'Expensive', variant: 'danger' as const };
     };
 
-    const handleSaveCity = async () => {
-        if (!newCity.name || !newCity.country) {
-            showToast({ title: 'Error', description: 'Name and Country are required', type: 'error' });
-            return;
-        }
-
-        setIsSaving(true);
+    const handleSaveCity = async (cityData: Partial<City>) => {
         try {
-            const url = editingId ? `/api/cities/${editingId}` : '/api/cities';
-            const method = editingId ? 'PUT' : 'POST';
+            const url = editCity?.id ? `/api/cities/${editCity.id}` : '/api/cities';
+            const method = editCity?.id ? 'PUT' : 'POST';
 
             const res = await fetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newCity)
+                body: JSON.stringify(cityData)
             });
 
             if (!res.ok) throw new Error('Failed to save');
 
             await fetchCities();
-            setIsCreateModalOpen(false);
-            setNewCity({ name: '', country: '', region: '', description: '', costIndex: 50, popularity: 50, imageUrl: '' });
-            setEditingId(null);
+            setIsModalOpen(false);
             showToast({
                 title: 'Success',
-                description: `City ${editingId ? 'updated' : 'added'} successfully`,
+                description: `City ${editCity?.id ? 'updated' : 'added'} successfully`,
                 type: 'success'
             });
         } catch (error) {
             showToast({ title: 'Error', description: 'Failed to save city', type: 'error' });
-        } finally {
-            setIsSaving(false);
+            throw error;
         }
     };
 
     const openEditModal = (city: City) => {
-        setNewCity(city);
-        setEditingId(city.id);
-        setIsCreateModalOpen(true);
+        setEditCity(city);
+        setIsModalOpen(true);
     };
 
     const openCreateModal = () => {
-        setNewCity({ name: '', country: '', region: '', description: '', costIndex: 50, popularity: 50, imageUrl: '' });
-        setEditingId(null);
-        setIsCreateModalOpen(true);
+        setEditCity({
+            name: '',
+            country: '',
+            region: '',
+            description: '',
+            costIndex: 50,
+            popularity: 50,
+            imageUrl: ''
+        });
+        setIsModalOpen(true);
     };
 
     if (isLoading) {
@@ -204,9 +195,11 @@ export default function CitiesPage() {
                         Discover amazing destinations for your next trip
                     </p>
                 </div>
-                <Button onClick={openCreateModal}>
-                    + Add City
-                </Button>
+                {isAdmin && (
+                    <Button onClick={openCreateModal}>
+                        + Add City
+                    </Button>
+                )}
             </div>
 
             {/* Filters */}
@@ -290,18 +283,20 @@ export default function CitiesPage() {
                                                         <FaRegBookmark className="w-4 h-4" />
                                                     )}
                                                 </button>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        e.preventDefault();
-                                                        openEditModal(city);
-                                                    }}
-                                                    className="bg-white/90 p-2 rounded-full text-slate-700 hover:text-primary-600 shadow-sm"
-                                                >
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                                    </svg>
-                                                </button>
+                                                {isAdmin && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            e.preventDefault();
+                                                            openEditModal(city);
+                                                        }}
+                                                        className="bg-white/90 p-2 rounded-full text-slate-700 hover:text-primary-600 shadow-sm"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                        </svg>
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
 
@@ -343,82 +338,20 @@ export default function CitiesPage() {
                 )}
             </div>
 
-            {/* Create City Modal */}
-            <Modal
-                isOpen={isCreateModalOpen}
-                onClose={() => setIsCreateModalOpen(false)}
-                title={editingId ? "Edit City" : "Add New City"}
-            >
-                <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <Input
-                            label="City Name"
-                            value={newCity.name || ''}
-                            onChange={(e) => setNewCity({ ...newCity, name: e.target.value })}
-                            placeholder="e.g. Paris"
-                        />
-                        <Input
-                            label="Country"
-                            value={newCity.country || ''}
-                            onChange={(e) => setNewCity({ ...newCity, country: e.target.value })}
-                            placeholder="e.g. France"
-                        />
-                    </div>
-                    <Input
-                        label="Region"
-                        value={newCity.region || ''}
-                        onChange={(e) => setNewCity({ ...newCity, region: e.target.value })}
-                        placeholder="e.g. Europe"
-                    />
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
-                        <textarea
-                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                            rows={3}
-                            value={newCity.description || ''}
-                            onChange={(e) => setNewCity({ ...newCity, description: e.target.value })}
-                            placeholder="Brief description of the city..."
-                        />
-                    </div>
-
-                    <ImageUpload
-                        label="City Image"
-                        value={newCity.imageUrl}
-                        onChange={(url) => setNewCity({ ...newCity, imageUrl: url })}
-                    />
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <Input
-                            label="Cost Index (0-100)"
-                            type="number"
-                            value={newCity.costIndex}
-                            onChange={(e) => setNewCity({ ...newCity, costIndex: parseInt(e.target.value) || 0 })}
-                        />
-                        <Input
-                            label="Popularity (0-100)"
-                            type="number"
-                            value={newCity.popularity}
-                            onChange={(e) => setNewCity({ ...newCity, popularity: parseInt(e.target.value) || 0 })}
-                        />
-                    </div>
-                    <div className="flex gap-4 pt-4">
-                        <Button variant="outline" onClick={() => setIsCreateModalOpen(false)} className="flex-1">
-                            Cancel
-                        </Button>
-                        <Button onClick={handleSaveCity} isLoading={isSaving} className="flex-1">
-                            {editingId ? 'Save Changes' : 'Create City'}
-                        </Button>
-                    </div>
-                </div>
-            </Modal>
+            {/* City Edit Modal */}
+            <CityEditModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                city={editCity}
+                onSave={handleSaveCity}
+            />
 
             {/* City Details Modal */}
-            < CityDetailsModal
+            <CityDetailsModal
                 isOpen={isDetailsModalOpen}
-                onClose={() => setIsDetailsModalOpen(false)
-                }
+                onClose={() => setIsDetailsModalOpen(false)}
                 city={viewingCity}
             />
-        </div >
+        </div>
     );
 }

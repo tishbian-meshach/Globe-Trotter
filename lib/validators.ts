@@ -75,7 +75,6 @@ export const updatePreferencesSchema = z.object({
     language: z.string().optional(),
     currency: z.string().length(3).optional(),
     timezone: z.string().optional(),
-    privacy: z.enum(['private', 'friends', 'public']).optional(),
 });
 
 // Types

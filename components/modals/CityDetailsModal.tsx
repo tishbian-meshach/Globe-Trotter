@@ -7,7 +7,7 @@ interface City {
     id: string;
     name: string;
     country: string;
-    region: string;
+    region?: string | null;
     description: string | null;
     costIndex: number;
     popularity: number;

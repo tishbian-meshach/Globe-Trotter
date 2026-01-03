@@ -3,6 +3,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 
+// Check if user has admin role
+async function isAdmin(session: any) {
+    if (!session?.user?.id) return false;
+    const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        include: { role: true }
+    });
+    return user?.role?.name === 'admin' || user?.isAdmin;
+}
+
 export async function PUT(
     request: NextRequest,
     { params }: { params: { id: string } }
@@ -11,6 +21,10 @@ export async function PUT(
         const session = await auth();
         if (!session?.user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        if (!await isAdmin(session)) {
+            return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
         }
 
         const body = await request.json();
@@ -44,6 +58,10 @@ export async function DELETE(
         const session = await auth();
         if (!session?.user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        if (!await isAdmin(session)) {
+            return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
         }
 
         await prisma.attraction.delete({

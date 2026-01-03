@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { motion } from 'framer-motion';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -10,7 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Loading } from '@/components/ui/Spinner';
 import { useToast } from '@/components/ui/Toast';
-import { ImageUpload } from '@/components/ui/ImageUpload';
+import { ActivityEditModal } from '@/components/modals/ActivityEditModal';
 
 const activityTypes = [
     { value: 'all', label: 'All Types' },
@@ -40,12 +41,16 @@ const durationOptions = [
 // Removed mock activities
 
 export default function ActivitiesPage() {
+    const { data: session } = useSession();
     const { showToast } = useToast();
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [typeFilter, setTypeFilter] = useState('all');
     const [costFilter, setCostFilter] = useState('all');
     const [durationFilter, setDurationFilter] = useState('all');
+
+    // Check if user is admin
+    const isAdmin = session?.user?.isAdmin || false;
 
     const [activities, setActivities] = useState<any[]>([]);
     const [filteredActivities, setFilteredActivities] = useState<any[]>([]);
@@ -54,19 +59,9 @@ export default function ActivitiesPage() {
     const [showDetailModal, setShowDetailModal] = useState(false);
 
     // Create State
-    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [cities, setCities] = useState<any[]>([]);
-    const [newActivity, setNewActivity] = useState<any>({
-        name: '',
-        description: '',
-        type: 'sightseeing',
-        cost: 0,
-        duration: 60,
-        cityId: '',
-        imageUrl: ''
-    });
-    const [isSaving, setIsSaving] = useState(false);
-    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editActivity, setEditActivity] = useState<any>(null);
 
     useEffect(() => {
         fetchData();
@@ -101,54 +96,51 @@ export default function ActivitiesPage() {
         }
     };
 
-    const handleSaveActivity = async () => {
-        if (!newActivity.name || !newActivity.cityId) {
-            showToast({ title: 'Error', description: 'Name and City are required', type: 'error' });
-            return;
-        }
-
-        setIsSaving(true);
+    const handleSaveActivity = async (activityData: any) => {
         try {
-            const url = editingId ? `/api/attractions/${editingId}` : '/api/attractions';
-            const method = editingId ? 'PUT' : 'POST';
+            const url = editActivity?.id ? `/api/attractions/${editActivity.id}` : '/api/attractions';
+            const method = editActivity?.id ? 'PUT' : 'POST';
 
             const res = await fetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newActivity)
+                body: JSON.stringify(activityData)
             });
 
             if (!res.ok) throw new Error('Failed to save');
 
             await fetchData();
-            setIsCreateModalOpen(false);
-            setNewActivity({ name: '', description: '', type: 'sightseeing', cost: 0, duration: 60, cityId: '', imageUrl: '' });
-            setEditingId(null);
+            setIsEditModalOpen(false);
             showToast({
                 title: 'Success',
-                description: `Activity ${editingId ? 'updated' : 'added'} successfully`,
+                description: `Activity ${editActivity?.id ? 'updated' : 'added'} successfully`,
                 type: 'success'
             });
         } catch (error) {
             showToast({ title: 'Error', description: 'Failed to save activity', type: 'error' });
-        } finally {
-            setIsSaving(false);
+            throw error;
         }
     };
 
     const openEditModal = (activity: any) => {
-        setNewActivity({
+        setEditActivity({
             ...activity,
             cityId: activity.cityId || (activity.city ? activity.city.id : '')
         });
-        setEditingId(activity.id);
-        setIsCreateModalOpen(true);
+        setIsEditModalOpen(true);
     };
 
     const openCreateModal = () => {
-        setNewActivity({ name: '', description: '', type: 'sightseeing', cost: 0, duration: 60, cityId: '', imageUrl: '' });
-        setEditingId(null);
-        setIsCreateModalOpen(true);
+        setEditActivity({
+            name: '',
+            description: '',
+            type: 'sightseeing',
+            cost: 0,
+            duration: 60,
+            cityId: '',
+            imageUrl: ''
+        });
+        setIsEditModalOpen(true);
     };
 
     const filterActivities = () => {
@@ -232,9 +224,11 @@ export default function ActivitiesPage() {
                         Find and plan amazing experiences for your trip
                     </p>
                 </div>
-                <Button onClick={openCreateModal}>
-                    + Add Activity
-                </Button>
+                {isAdmin && (
+                    <Button onClick={openCreateModal}>
+                        + Add Activity
+                    </Button>
+                )}
             </div>
 
             {/* Filters */}
@@ -321,20 +315,22 @@ export default function ActivitiesPage() {
                                             </div>
                                         )}
 
-                                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    e.preventDefault();
-                                                    openEditModal(activity);
-                                                }}
-                                                className="bg-white/90 p-2 rounded-full text-slate-700 hover:text-primary-600 shadow-sm"
-                                            >
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                                </svg>
-                                            </button>
-                                        </div>
+                                        {isAdmin && (
+                                            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        e.preventDefault();
+                                                        openEditModal(activity);
+                                                    }}
+                                                    className="bg-white/90 p-2 rounded-full text-slate-700 hover:text-primary-600 shadow-sm"
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <CardHeader>
@@ -439,72 +435,14 @@ export default function ActivitiesPage() {
                 </Modal>
             )}
 
-            {/* Create Activity Modal */}
-            <Modal
-                isOpen={isCreateModalOpen}
-                onClose={() => setIsCreateModalOpen(false)}
-                title={editingId ? "Edit Activity" : "Add New Activity"}
-            >
-                <div className="space-y-4">
-                    <Dropdown
-                        label="City"
-                        options={cities.map(c => ({ value: c.id, label: `${c.name}, ${c.country}` }))}
-                        value={newActivity.cityId}
-                        onChange={(value) => setNewActivity({ ...newActivity, cityId: value })}
-                        placeholder="Select a city"
-                    />
-                    <Input
-                        label="Activity Name"
-                        value={newActivity.name}
-                        onChange={(e) => setNewActivity({ ...newActivity, name: e.target.value })}
-                        placeholder="e.g. Louvre Museum"
-                    />
-                    <Dropdown
-                        label="Type"
-                        options={activityTypes.filter(t => t.value !== 'all')}
-                        value={newActivity.type}
-                        onChange={(value) => setNewActivity({ ...newActivity, type: value })}
-                    />
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
-                        <textarea
-                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                            rows={3}
-                            value={newActivity.description}
-                            onChange={(e) => setNewActivity({ ...newActivity, description: e.target.value })}
-                        />
-                    </div>
-
-                    <ImageUpload
-                        label="Activity Image"
-                        value={newActivity.imageUrl}
-                        onChange={(url) => setNewActivity({ ...newActivity, imageUrl: url })}
-                    />
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <Input
-                            label="Cost ($)"
-                            type="number"
-                            value={newActivity.cost}
-                            onChange={(e) => setNewActivity({ ...newActivity, cost: parseFloat(e.target.value) || 0 })}
-                        />
-                        <Input
-                            label="Duration (minutes)"
-                            type="number"
-                            value={newActivity.duration}
-                            onChange={(e) => setNewActivity({ ...newActivity, duration: parseInt(e.target.value) || 0 })}
-                        />
-                    </div>
-                    <div className="flex gap-4 pt-4">
-                        <Button variant="outline" onClick={() => setIsCreateModalOpen(false)} className="flex-1">
-                            Cancel
-                        </Button>
-                        <Button onClick={handleSaveActivity} isLoading={isSaving} className="flex-1">
-                            {editingId ? 'Save Changes' : 'Create Activity'}
-                        </Button>
-                    </div>
-                </div>
-            </Modal>
+            {/* Activity Edit Modal */}
+            <ActivityEditModal
+                isOpen={isEditModalOpen}
+                onClose={() => setIsEditModalOpen(false)}
+                activity={editActivity}
+                cities={cities}
+                onSave={handleSaveActivity}
+            />
 
         </div>
     );

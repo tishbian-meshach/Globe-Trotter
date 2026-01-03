@@ -1,5 +1,6 @@
 'use client';
 
+import { SessionProvider, useSession } from 'next-auth/react';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -13,15 +14,17 @@ const navigation = [
     { name: 'Cities', href: '/cities', icon: HiGlobeAlt },
     { name: 'Activities', href: '/activities', icon: HiLightningBolt },
     { name: 'Profile', href: '/profile', icon: HiUser },
-    { name: 'Admin', href: '/admin', icon: HiChartBar },
+    { name: 'Admin', href: '/admin', icon: HiChartBar, adminOnly: true },
 ];
 
 interface DashboardLayoutProps {
     children: React.ReactNode;
 }
 
-export default function DashboardLayout({ children }: DashboardLayoutProps) {
+function DashboardContent({ children }: DashboardLayoutProps) {
     const pathname = usePathname();
+    const { data: session } = useSession();
+    const isAdmin = session?.user?.isAdmin || false;
 
     return (
         <div className="min-h-screen bg-slate-50">
@@ -38,25 +41,27 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                             </Link>
 
                             <div className="hidden md:flex gap-1">
-                                {navigation.map((item) => {
-                                    const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-                                    const Icon = item.icon;
-                                    return (
-                                        <Link
-                                            key={item.href}
-                                            href={item.href}
-                                            className={cn(
-                                                'px-4 py-2 rounded-lg text-sm font-medium transition-colors relative flex items-center gap-2',
-                                                isActive
-                                                    ? 'text-primary-600 bg-primary-50'
-                                                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                                            )}
-                                        >
-                                            <Icon className="w-4 h-4" />
-                                            <span>{item.name}</span>
-                                        </Link>
-                                    );
-                                })}
+                                {navigation
+                                    .filter(item => !item.adminOnly || isAdmin)
+                                    .map((item) => {
+                                        const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                                        const Icon = item.icon;
+                                        return (
+                                            <Link
+                                                key={item.href}
+                                                href={item.href}
+                                                className={cn(
+                                                    'px-4 py-2 rounded-lg text-sm font-medium transition-colors relative flex items-center gap-2',
+                                                    isActive
+                                                        ? 'text-primary-600 bg-primary-50'
+                                                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                                                )}
+                                            >
+                                                <Icon className="w-4 h-4" />
+                                                <span>{item.name}</span>
+                                            </Link>
+                                        );
+                                    })}
                             </div>
                         </div>
 
@@ -84,5 +89,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 {children}
             </main>
         </div>
+    );
+}
+
+export default function DashboardLayout({ children }: DashboardLayoutProps) {
+    return (
+        <SessionProvider>
+            <DashboardContent>{children}</DashboardContent>
+        </SessionProvider>
     );
 }

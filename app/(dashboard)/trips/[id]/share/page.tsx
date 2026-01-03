@@ -5,7 +5,6 @@ import { useParams, useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
-import { Badge } from '@/components/ui/Badge';
 import { Loading } from '@/components/ui/Spinner';
 
 export default function TripSharePage() {
@@ -16,7 +15,6 @@ export default function TripSharePage() {
     const [trip, setTrip] = useState<any>(null);
     const [sharedTrip, setSharedTrip] = useState<any>(null);
     const [isGenerating, setIsGenerating] = useState(false);
-    const [isUpdating, setIsUpdating] = useState(false);
 
     useEffect(() => {
         fetchData();
@@ -52,7 +50,6 @@ export default function TripSharePage() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    isPublic: true,
                     canCopy: true,
                 }),
             });
@@ -64,7 +61,7 @@ export default function TripSharePage() {
 
             showToast({
                 title: 'Share link created!',
-                description: 'Your trip is now public',
+                description: 'You can now share your trip via link',
                 type: 'success',
             });
         } catch (error) {
@@ -75,35 +72,6 @@ export default function TripSharePage() {
             });
         } finally {
             setIsGenerating(false);
-        }
-    };
-
-    const updateSharing = async (isPublic: boolean) => {
-        setIsUpdating(true);
-        try {
-            const response = await fetch(`/api/trips/${params.id}/share`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ isPublic }),
-            });
-
-            if (!response.ok) throw new Error('Failed to update');
-
-            const data = await response.json();
-            setSharedTrip(data);
-
-            showToast({
-                title: isPublic ? 'Trip is now public' : 'Trip is now private',
-                type: 'success',
-            });
-        } catch (error) {
-            showToast({
-                title: 'Error',
-                description: 'Failed to update sharing settings',
-                type: 'error',
-            });
-        } finally {
-            setIsUpdating(false);
         }
     };
 
@@ -152,59 +120,29 @@ export default function TripSharePage() {
                     {/* Share Link Card */}
                     <Card>
                         <CardHeader>
-                            <div className="flex items-center justify-between">
-                                <CardTitle>Public Link</CardTitle>
-                                <Badge variant={sharedTrip.isPublic ? 'success' : 'default'}>
-                                    {sharedTrip.isPublic ? 'Public' : 'Private'}
-                                </Badge>
-                            </div>
+                            <CardTitle>Share Link</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            {sharedTrip.isPublic && (
-                                <>
-                                    <div className="flex items-center gap-2">
-                                        <input
-                                            type="text"
-                                            value={shareUrl}
-                                            readOnly
-                                            className="flex-1 px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm font-mono"
-                                        />
-                                        <Button onClick={() => copyToClipboard(shareUrl)}>
-                                            Copy
-                                        </Button>
-                                    </div>
-
-                                    <a
-                                        href={shareUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center text-primary-600 hover:text-primary-700 text-sm font-medium"
-                                    >
-                                        Preview public page →
-                                    </a>
-                                </>
-                            )}
-
-                            <div className="flex gap-3 pt-4 border-t border-slate-200">
-                                {sharedTrip.isPublic ? (
-                                    <Button
-                                        variant="outline"
-                                        onClick={() => updateSharing(false)}
-                                        isLoading={isUpdating}
-                                        className="flex-1"
-                                    >
-                                        Make Private
-                                    </Button>
-                                ) : (
-                                    <Button
-                                        onClick={() => updateSharing(true)}
-                                        isLoading={isUpdating}
-                                        className="flex-1"
-                                    >
-                                        Make Public
-                                    </Button>
-                                )}
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="text"
+                                    value={shareUrl}
+                                    readOnly
+                                    className="flex-1 px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm font-mono"
+                                />
+                                <Button onClick={() => copyToClipboard(shareUrl)}>
+                                    Copy
+                                </Button>
                             </div>
+
+                            <a
+                                href={shareUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center text-primary-600 hover:text-primary-700 text-sm font-medium"
+                            >
+                                Preview shared page →
+                            </a>
                         </CardContent>
                     </Card>
 

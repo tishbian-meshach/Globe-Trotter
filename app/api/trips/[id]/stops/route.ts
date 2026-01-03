@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
+// Check if user has admin role
+async function isAdmin(session: any) {
+    if (!session?.user?.id) return false;
+    const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        include: { role: true }
+    });
+    return user?.role?.name === 'admin' || user?.isAdmin;
+}
+
 export async function POST(
     request: NextRequest,
     { params }: { params: { id: string } }
@@ -12,13 +22,26 @@ export async function POST(
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Verify trip ownership
+        // Check if user is admin
+        const userIsAdmin = await isAdmin(session);
+
+        // Verify trip ownership or admin access
         const trip = await prisma.trip.findUnique({
             where: { id: params.id },
         });
 
-        if (!trip || trip.userId !== session.user.id) {
+        if (!trip) {
+            return NextResponse.json({ error: 'Trip not found' }, { status: 404 });
+        }
+
+        // Allow access if user is owner or admin
+        if (trip.userId !== session.user.id && !userIsAdmin) {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+
+        // Check if trip is locked (only matters for non-admin users)
+        if (trip.isLocked && !userIsAdmin) {
+            return NextResponse.json({ error: 'Trip is locked and cannot be edited' }, { status: 403 });
         }
 
         const { stops } = await request.json();
