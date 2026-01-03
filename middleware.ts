@@ -1,6 +1,10 @@
 import { auth } from '@/lib/auth';
 import { NextResponse } from 'next/server';
 
+export const config = {
+    matcher: ['/((?!api|_next/static|_next/image|favicon.ico|images|.*\\.png$|.*\\.jpg$|.*\\.jpeg$|.*\\.svg$).*)'],
+};
+
 export const middleware = auth((req) => {
     const isLoggedIn = !!req.auth;
     const isAuthPage = req.nextUrl.pathname.startsWith('/login') ||
@@ -25,7 +29,3 @@ export const middleware = auth((req) => {
 
     return NextResponse.next();
 });
-
-export const config = {
-    matcher: ['/((?!api|_next/static|_next/image|favicon.ico|images|.*\\.png$|.*\\.jpg$|.*\\.jpeg$|.*\\.svg$).*)'],
-};
