@@ -5,6 +5,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { formatDateRange, getTripDuration } from '@/lib/utils';
 
+export const dynamic = 'force-dynamic';
+
 interface PageProps {
     params: {
         id: string;

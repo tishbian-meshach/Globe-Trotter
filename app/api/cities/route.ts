@@ -12,6 +12,8 @@ async function isAdmin(session: any) {
     return user?.role?.name === 'admin' || user?.isAdmin;
 }
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
     try {
         const session = await auth();

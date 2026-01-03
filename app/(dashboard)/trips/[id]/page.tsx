@@ -8,6 +8,8 @@ import { formatDateRange, getTripDuration, formatCurrency } from '@/lib/utils';
 import { EditTripButton } from '@/components/trips/EditTripButton';
 import { ShareTripButton } from '@/components/trips/ShareTripButton';
 
+export const dynamic = 'force-dynamic';
+
 interface PageProps {
     params: {
         id: string;

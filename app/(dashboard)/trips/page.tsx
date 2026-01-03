@@ -6,6 +6,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Badge } from '@/components/ui/Badge';
 import { formatDateRange, getTripDuration } from '@/lib/utils';
 
+export const dynamic = 'force-dynamic';
+
 export default async function TripsPage() {
     const session = await auth();
     if (!session?.user) redirect('/login');
