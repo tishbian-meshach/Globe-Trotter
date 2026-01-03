@@ -192,6 +192,10 @@ export default function ActivitiesPage() {
         return colors[type] || 'default';
     };
 
+    if (isLoading) {
+        return <Loading text="Loading activities..." className="min-h-[50vh]" />;
+    }
+
     return (
         <div className="space-y-8">
             {/* Header */}

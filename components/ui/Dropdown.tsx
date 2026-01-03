@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 interface Option {
     value: string;
     label: string;
+    disabled?: boolean;
 }
 
 interface DropdownProps {
@@ -16,6 +17,7 @@ interface DropdownProps {
     label?: string;
     error?: string;
     className?: string;
+    disabled?: boolean;
 }
 
 export function Dropdown({
@@ -26,6 +28,7 @@ export function Dropdown({
     label,
     error,
     className,
+    disabled = false,
 }: DropdownProps) {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
@@ -59,11 +62,13 @@ export function Dropdown({
 
             <button
                 type="button"
-                onClick={() => setIsOpen(prev => !prev)}
+                onClick={() => !disabled && setIsOpen(prev => !prev)}
+                disabled={disabled}
                 className={cn(
                     'w-full h-11 px-4 text-sm text-left bg-white border rounded-lg',
                     'flex items-center justify-between gap-2 transition-colors',
-                    isOpen
+                    disabled ? 'opacity-50 cursor-not-allowed bg-slate-50' : '',
+                    !disabled && isOpen
                         ? 'border-primary-500 ring-2 ring-primary-100'
                         : 'border-slate-300 hover:border-slate-400',
                     error && 'border-red-500'
@@ -90,13 +95,13 @@ export function Dropdown({
                         options.map((option) => (
                             <li
                                 key={option.value}
-                                onClick={() => handleSelect(option.value)}
+                                onClick={() => !option.disabled && handleSelect(option.value)}
                                 className={cn(
-                                    'px-4 py-2.5 text-sm cursor-pointer transition-colors',
-                                    'hover:bg-primary-50 hover:text-primary-700',
-                                    option.value === value
-                                        ? 'bg-primary-100 text-primary-700 font-medium'
-                                        : 'text-slate-700'
+                                    'px-4 py-2.5 text-sm transition-colors',
+                                    option.disabled
+                                        ? 'text-slate-400 cursor-not-allowed bg-slate-50'
+                                        : 'cursor-pointer hover:bg-primary-50 hover:text-primary-700 text-slate-700',
+                                    option.value === value && !option.disabled && 'bg-primary-100 text-primary-700 font-medium'
                                 )}
                             >
                                 {option.label}

@@ -2,10 +2,11 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/Card';
 import { PieChart } from '@/components/charts/PieChart';
 import { BarChart } from '@/components/charts/BarChart';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, getTripDuration } from '@/lib/utils';
+import { AddExpenseModal } from '@/components/modals/AddExpenseModal';
 
 interface PageProps {
     params: {
@@ -28,6 +29,7 @@ export default async function TripBudgetPage({ params }: PageProps) {
             stops: {
                 include: {
                     activities: true,
+                    city: true,
                 },
             },
         },
@@ -48,6 +50,18 @@ export default async function TripBudgetPage({ params }: PageProps) {
         (new Date(trip.endDate).getTime() - new Date(trip.startDate).getTime()) / (1000 * 60 * 60 * 24)
     );
     const avgPerDay = totalExpenses / tripDurationDays || 0;
+
+    // Calculate Estimated Costs
+    const activityCosts = trip.stops.reduce((sum, stop) => {
+        return sum + stop.activities.reduce((actSum, act) => actSum + (act.cost || 0), 0);
+    }, 0);
+
+    const cityCosts = trip.stops.reduce((sum, stop) => {
+        const stopDuration = getTripDuration(new Date(stop.startDate), new Date(stop.endDate));
+        return sum + (stopDuration * (stop.city.costIndex || 0));
+    }, 0);
+
+    const totalEstimatedCost = activityCosts + cityCosts;
 
     // Prepare chart data
     const categoryColors: Record<string, string> = {
@@ -72,19 +86,67 @@ export default async function TripBudgetPage({ params }: PageProps) {
     return (
         <div className="space-y-8">
             {/* Header */}
-            <div>
-                <Link
-                    href={`/trips/${trip.id}`}
-                    className="inline-flex items-center text-sm text-slate-600 hover:text-slate-900 mb-4"
-                >
-                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                    Back to trip
-                </Link>
+            <div className="flex items-start justify-between">
+                <div>
+                    <Link
+                        href={`/trips/${trip.id}`}
+                        className="inline-flex items-center text-sm text-slate-600 hover:text-slate-900 mb-4"
+                    >
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                        Back to trip
+                    </Link>
 
-                <h1 className="text-4xl font-bold text-slate-900">Budget & Expenses</h1>
-                <p className="text-slate-600 mt-2">{trip.name}</p>
+                    <h1 className="text-4xl font-bold text-slate-900">Budget & Expenses</h1>
+                    <p className="text-slate-600 mt-2">{trip.name}</p>
+                </div>
+                <div>
+                    <AddExpenseModal tripId={trip.id} />
+                </div>
+            </div>
+
+            {/* Estimated vs Actual Comparison */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card className="bg-slate-50 border-slate-200">
+                    <CardHeader>
+                        <CardDescription>Estimated Cost (Planned)</CardDescription>
+                        <CardTitle className="text-2xl text-slate-700">{formatCurrency(totalEstimatedCost)}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                        <div className="text-sm space-y-1 text-slate-600">
+                            <div className="flex justify-between">
+                                <span>Daily Living (City Index)</span>
+                                <span>{formatCurrency(cityCosts)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>Activities</span>
+                                <span>{formatCurrency(activityCosts)}</span>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="bg-white border-primary-100 ring-4 ring-primary-50/50">
+                    <CardHeader>
+                        <CardDescription>Actual Expenses</CardDescription>
+                        <CardTitle className="text-3xl text-primary-600">{formatCurrency(totalExpenses)}</CardTitle>
+                    </CardHeader>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardDescription>Difference</CardDescription>
+                        <CardTitle className={`text-2xl ${totalExpenses > totalEstimatedCost ? 'text-red-500' : 'text-emerald-500'}`}>
+                            {totalExpenses > totalEstimatedCost ? '+' : ''}{formatCurrency(totalExpenses - totalEstimatedCost)}
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                        <div className="text-sm text-slate-500">
+                            {totalExpenses > totalEstimatedCost ? 'Over estimated budget' : 'Under estimated budget'}
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
 
             {/* Overview Cards */}

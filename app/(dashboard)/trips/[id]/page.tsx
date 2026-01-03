@@ -41,7 +41,21 @@ export default async function TripDetailPage({ params }: PageProps) {
     }
 
     const duration = getTripDuration(new Date(trip.startDate), new Date(trip.endDate));
-    const totalExpenses = trip.expenses.reduce((sum, e) => sum + e.amount, 0);
+
+    // Calculate Costs
+    const manualExpenses = trip.expenses.reduce((sum, e) => sum + e.amount, 0);
+
+    const activityCosts = trip.stops.reduce((sum, stop) => {
+        return sum + stop.activities.reduce((actSum, act) => actSum + (act.cost ?? 0), 0);
+    }, 0);
+
+    const cityCosts = trip.stops.reduce((sum, stop) => {
+        const stopDuration = getTripDuration(new Date(stop.startDate), new Date(stop.endDate));
+        return sum + (stopDuration * (stop.city.costIndex || 0));
+    }, 0);
+
+    const totalCost = manualExpenses + activityCosts + cityCosts;
+
     const expensesByCategory = trip.expenses.reduce((acc, expense) => {
         acc[expense.category] = (acc[expense.category] || 0) + expense.amount;
         return acc;
@@ -117,9 +131,9 @@ export default async function TripDetailPage({ params }: PageProps) {
 
                 <Card>
                     <CardHeader>
-                        <CardDescription>Total Budget</CardDescription>
+                        <CardDescription>Total Estimated Cost</CardDescription>
                         <CardTitle className="text-3xl text-primary-500">
-                            {formatCurrency(totalExpenses)}
+                            {formatCurrency(totalCost)}
                         </CardTitle>
                     </CardHeader>
                 </Card>
@@ -199,9 +213,9 @@ export default async function TripDetailPage({ params }: PageProps) {
                                                             </div>
                                                         )}
                                                     </div>
-                                                    {activity.cost > 0 && (
+                                                    {(activity.cost ?? 0) > 0 && (
                                                         <div className="text-sm font-medium text-slate-900">
-                                                            {formatCurrency(activity.cost)}
+                                                            {formatCurrency(activity.cost ?? 0)}
                                                         </div>
                                                     )}
                                                 </div>

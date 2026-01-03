@@ -261,10 +261,16 @@ export default function ItineraryBuilderPage({ params }: PageProps) {
         return <Loading text="Loading itinerary builder..." />;
     }
 
-    const cityOptions = cities.map((city) => ({
-        value: city.id,
-        label: `${city.name}, ${city.country}`,
-    }));
+    // Helper to get disabled cities (selected in other stops)
+    const getCityOptions = (currentCityId: string) => {
+        const usedCityIds = stops.map(s => s.cityId).filter(id => id && id !== currentCityId);
+
+        return cities.map((city) => ({
+            value: city.id,
+            label: `${city.name}, ${city.country}`,
+            disabled: usedCityIds.includes(city.id)
+        }));
+    };
 
     return (
         <div className="max-w-4xl mx-auto space-y-8 pb-20">
@@ -325,7 +331,7 @@ export default function ItineraryBuilderPage({ params }: PageProps) {
                                     <div className="space-y-2">
                                         <Dropdown
                                             label="City"
-                                            options={cityOptions}
+                                            options={getCityOptions(stop.cityId)}
                                             value={stop.cityId}
                                             onChange={(value) => {
                                                 console.log('Parent received city update:', value);
@@ -367,47 +373,26 @@ export default function ItineraryBuilderPage({ params }: PageProps) {
 
                                     {/* Activities Section */}
                                     <div className="border-t border-slate-100 pt-4">
-                                        <div className="flex items-center justify-between mb-3">
-                                            <label className="text-sm font-medium text-slate-700">Activities</label>
-                                            <Dropdown
-                                                label=""
-                                                placeholder="+ Add Activity"
-                                                value=""
-                                                options={[
-                                                    { value: 'custom', label: '+ Create Custom Activity' },
-                                                    ...(cities.find(c => c.id === stop.cityId)?.attractions?.map(a => ({
-                                                        value: a.id,
-                                                        label: `${a.name} ($${a.cost})`
-                                                    })) || [])
-                                                ]}
-                                                onChange={(value) => addActivity(index, value)}
-                                            />
-                                        </div>
+                                        <label className="text-sm font-medium text-slate-700 mb-3 block">Activities</label>
 
-                                        <div className="space-y-3">
+                                        <div className="space-y-3 mb-3">
                                             {stop.activities.map((activity, actIndex) => (
-                                                <div key={activity._key} className="flex gap-2 items-start">
-                                                    <div className="flex-1">
-                                                        <input
-                                                            type="text"
-                                                            placeholder="Activity Name"
-                                                            value={activity.name}
-                                                            onChange={(e) => updateActivity(index, actIndex, 'name', e.target.value)}
-                                                            className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500"
-                                                        />
+                                                <div key={activity._key} className="flex gap-2 items-center bg-slate-50 p-3 rounded-lg group">
+                                                    {/* Read-Only Display for ALL activities */}
+                                                    <div className="flex-1 flex flex-col">
+                                                        <span className="text-sm font-medium text-slate-800">{activity.name}</span>
+                                                        <span className="text-xs text-slate-500 capitalize">{activity.type}</span>
                                                     </div>
-                                                    <div className="w-24">
-                                                        <input
-                                                            type="number"
-                                                            placeholder="Cost"
-                                                            value={activity.cost}
-                                                            onChange={(e) => updateActivity(index, actIndex, 'cost', parseFloat(e.target.value) || 0)}
-                                                            className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500"
-                                                        />
+                                                    <div className="w-24 text-right">
+                                                        <span className="text-sm font-medium text-slate-700">
+                                                            ${activity.cost}
+                                                        </span>
                                                     </div>
+
                                                     <button
                                                         onClick={() => removeActivity(index, actIndex)}
-                                                        className="p-2 text-slate-400 hover:text-red-500"
+                                                        className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                                        title="Remove"
                                                     >
                                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -416,8 +401,28 @@ export default function ItineraryBuilderPage({ params }: PageProps) {
                                                 </div>
                                             ))}
                                             {stop.activities.length === 0 && (
-                                                <div className="text-sm text-slate-400 italic">No activities added yet</div>
+                                                <div className="text-sm text-slate-400 italic py-2 text-center bg-slate-50/50 rounded-lg dashed border border-slate-200">
+                                                    No activities added yet
+                                                </div>
                                             )}
+                                        </div>
+
+                                        {/* Catalog Dropdown Only */}
+                                        <div className="w-full">
+                                            <Dropdown
+                                                label=""
+                                                placeholder={stop.cityId ? "+ Add from Catalog" : "Select City First"}
+                                                value=""
+                                                options={[
+                                                    ...(cities.find(c => c.id === stop.cityId)?.attractions?.map(a => ({
+                                                        value: a.id,
+                                                        label: `${a.name} ($${a.cost})`,
+                                                        disabled: stop.activities.some(act => act.attractionId === a.id)
+                                                    })) || [])
+                                                ]}
+                                                onChange={(value) => addActivity(index, value)}
+                                                disabled={!stop.cityId}
+                                            />
                                         </div>
                                     </div>
 
