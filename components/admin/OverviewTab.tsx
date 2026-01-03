@@ -15,7 +15,7 @@ interface StatsData {
     tripsByStatus: Record<string, number>;
     cityChartData: { label: string; value: number }[];
     tripsChartData: { label: string; value: number }[];
-    statusChartData: { label: string; value: number }[];
+    statusChartData: { label: string; value: number; color: string }[];
     topCities: {
         id: string;
         name: string;
@@ -72,31 +72,28 @@ export function OverviewTab() {
                 <div className="flex gap-2">
                     <button
                         onClick={() => setDateRange('7')}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                            dateRange === '7'
-                                ? 'bg-primary-500 text-white'
-                                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                        }`}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${dateRange === '7'
+                            ? 'bg-primary-500 text-white'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                            }`}
                     >
                         7 Days
                     </button>
                     <button
                         onClick={() => setDateRange('30')}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                            dateRange === '30'
-                                ? 'bg-primary-500 text-white'
-                                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                        }`}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${dateRange === '30'
+                            ? 'bg-primary-500 text-white'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                            }`}
                     >
                         30 Days
                     </button>
                     <button
                         onClick={() => setDateRange('90')}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                            dateRange === '90'
-                                ? 'bg-primary-500 text-white'
-                                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                        }`}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${dateRange === '90'
+                            ? 'bg-primary-500 text-white'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                            }`}
                     >
                         90 Days
                     </button>
@@ -191,7 +188,7 @@ export function OverviewTab() {
                     </CardHeader>
                     <CardContent>
                         {stats.statusChartData.length > 0 ? (
-                            <PieChart data={stats.statusChartData} height={300} />
+                            <PieChart data={stats.statusChartData} size={300} />
                         ) : (
                             <div className="text-center text-slate-500 py-12">
                                 No data available
@@ -247,8 +244,8 @@ export function OverviewTab() {
                                                     <svg
                                                         key={i}
                                                         className={`w-4 h-4 ${i < Math.floor(city.popularity / 20)
-                                                                ? 'fill-amber-400'
-                                                                : 'fill-slate-200'
+                                                            ? 'fill-amber-400'
+                                                            : 'fill-slate-200'
                                                             }`}
                                                         viewBox="0 0 20 20"
                                                     >

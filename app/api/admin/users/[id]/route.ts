@@ -164,7 +164,7 @@ export async function DELETE(
         const { id } = await params;
 
         // Prevent deleting self
-        if (session.user?.id === id) {
+        if (session?.user?.id === id) {
             return NextResponse.json({ error: 'Cannot delete yourself' }, { status: 400 });
         }
 
