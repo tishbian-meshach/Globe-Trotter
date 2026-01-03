@@ -102,7 +102,7 @@ export function DatePicker({
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="absolute z-10 mt-2 bg-white border-2 border-slate-200 rounded-xl shadow-elevated p-4"
+                        className="absolute z-50 mt-2 bg-white border-2 border-slate-200 rounded-xl shadow-elevated p-4 w-72"
                     >
                         {/* Month Navigation */}
                         <div className="flex items-center justify-between mb-4">

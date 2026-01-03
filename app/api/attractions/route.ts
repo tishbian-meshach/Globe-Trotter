@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { cityId, name, type, cost, duration, description } = body;
+        const { cityId, name, type, cost, duration, description, imageUrl } = body;
 
         if (!cityId || !name || !type) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -47,6 +47,7 @@ export async function POST(request: NextRequest) {
                 cost: parseFloat(cost) || 0,
                 duration: parseInt(duration) || null,
                 description: description || null,
+                imageUrl,
             },
         });
 

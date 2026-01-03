@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { name, country, region, description, costIndex, popularity } = body;
+        const { name, country, region, description, costIndex, popularity, imageUrl } = body;
 
         const city = await prisma.city.create({
             data: {
@@ -43,6 +43,7 @@ export async function POST(request: NextRequest) {
                 description,
                 costIndex: parseInt(costIndex) || 50,
                 popularity: parseInt(popularity) || 50,
+                imageUrl,
             },
         });
 
