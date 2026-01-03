@@ -7,6 +7,8 @@ import Link from 'next/link';
 import { auth } from '@/lib/auth';
 import { CopyTripButton } from '@/components/trips/CopyTripButton';
 
+export const dynamic = 'force-dynamic';
+
 interface PageProps {
     params: {
         shareId: string;
