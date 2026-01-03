@@ -1,0 +1,35 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { auth } from '@/lib/auth';
+
+export async function POST(request: NextRequest) {
+    try {
+        const session = await auth();
+        if (!session?.user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const body = await request.json();
+        const { cityId, name, type, cost, duration, description } = body;
+
+        if (!cityId || !name || !type) {
+            return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+        }
+
+        const attraction = await prisma.attraction.create({
+            data: {
+                cityId,
+                name,
+                type,
+                cost: parseFloat(cost) || 0,
+                duration: parseInt(duration) || null,
+                description: description || null,
+            },
+        });
+
+        return NextResponse.json(attraction);
+    } catch (error) {
+        console.error('Create attraction error:', error);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
+}
