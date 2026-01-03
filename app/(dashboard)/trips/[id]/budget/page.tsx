@@ -8,6 +8,8 @@ import { BarChart } from '@/components/charts/BarChart';
 import { formatCurrency, getTripDuration } from '@/lib/utils';
 import { AddExpenseModal } from '@/components/modals/AddExpenseModal';
 
+export const dynamic = 'force-dynamic';
+
 interface PageProps {
     params: {
         id: string;

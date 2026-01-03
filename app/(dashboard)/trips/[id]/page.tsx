@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/Badge';
 import { formatDateRange, getTripDuration, formatCurrency } from '@/lib/utils';
 import { EditTripButton } from '@/components/trips/EditTripButton';
 
+export const dynamic = 'force-dynamic';
+
 interface PageProps {
     params: {
         id: string;
