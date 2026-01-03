@@ -6,6 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/com
 import { Badge } from '@/components/ui/Badge';
 import { formatDateRange, getTripDuration, formatCurrency } from '@/lib/utils';
 import { EditTripButton } from '@/components/trips/EditTripButton';
+import { ShareTripButton } from '@/components/trips/ShareTripButton';
 
 interface PageProps {
     params: {
@@ -115,6 +116,7 @@ export default async function TripDetailPage({ params }: PageProps) {
                 </div>
 
                 <div className="flex gap-2">
+                    <ShareTripButton tripId={trip.id} shareId={trip.shareId} />
                     <EditTripButton trip={trip} />
                     <Link
                         href={`/trips/${trip.id}/budget`}
