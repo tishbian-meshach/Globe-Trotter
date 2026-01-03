@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+
 // Check if user has admin role
 async function isAdmin(session: any) {
     if (!session?.user?.id) return false;
@@ -26,17 +28,17 @@ export async function GET(request: NextRequest) {
         const status = searchParams.get('status');
 
         const where: any = {};
-        
+
         if (cityId) {
             where.stops = {
                 some: { cityId }
             };
         }
-        
+
         if (userId) {
             where.userId = userId;
         }
-        
+
         if (status) {
             where.status = status;
         }

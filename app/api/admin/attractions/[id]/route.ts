@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+
 // Check if user has admin role
 async function isAdmin(session: any) {
     if (!session?.user?.id) return false;
@@ -90,10 +92,10 @@ export async function PUT(
         });
 
         // Create audit log
-        const action = isHidden !== undefined 
+        const action = isHidden !== undefined
             ? (isHidden ? 'attraction_hidden' : 'attraction_unhidden')
             : 'attraction_updated';
-        
+
         if (session?.user?.id) {
             await prisma.auditLog.create({
                 data: {

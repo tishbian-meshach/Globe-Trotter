@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+
 // Check if user has admin role
 async function isAdmin(session: any) {
     if (!session?.user?.id) return false;
@@ -25,11 +27,11 @@ export async function GET(request: NextRequest) {
         const entityType = searchParams.get('entityType');
 
         const where: any = {};
-        
+
         if (action) {
             where.action = action;
         }
-        
+
         if (entityType) {
             where.entityType = entityType;
         }
@@ -52,7 +54,7 @@ export async function GET(request: NextRequest) {
         });
 
         const adminMap = new Map(admins.map(a => [a.id, a]));
-        
+
         const logsWithAdmins = logs.map(log => ({
             ...log,
             admin: adminMap.get(log.adminId)

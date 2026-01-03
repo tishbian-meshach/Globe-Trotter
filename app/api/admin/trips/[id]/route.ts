@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+
 // Check if user has admin role
 async function isAdmin(session: any) {
     if (!session?.user?.id) return false;
@@ -270,7 +272,7 @@ export async function PUT(
             const updatedTrip = await prisma.trip.update({
                 where: { id },
                 data: {
-                    description: action === 'flag' 
+                    description: action === 'flag'
                         ? `[FLAGGED] ${trip.description || ''}`
                         : trip.description?.replace('[FLAGGED] ', '') || trip.description
                 },
