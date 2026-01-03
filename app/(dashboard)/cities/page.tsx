@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Loading } from '@/components/ui/Spinner';
 import { useToast } from '@/components/ui/Toast';
 import { ImageUpload } from '@/components/ui/ImageUpload';
+import { CityDetailsModal } from '@/components/modals/CityDetailsModal';
 
 interface City {
     id: string;
@@ -21,6 +22,7 @@ interface City {
     costIndex: number;
     popularity: number;
     imageUrl?: string | null;
+    attractions?: any[];
 }
 
 export default function CitiesPage() {
@@ -44,6 +46,10 @@ export default function CitiesPage() {
     });
     const [isSaving, setIsSaving] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
+
+    // Detail Modal State
+    const [viewingCity, setViewingCity] = useState<City | null>(null);
+    const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
     useEffect(() => {
         fetchCities();
@@ -212,6 +218,11 @@ export default function CitiesPage() {
                                     initial={{ opacity: 0, scale: 0.95 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     transition={{ duration: 0.2 }}
+                                    onClick={() => {
+                                        setViewingCity(city);
+                                        setIsDetailsModalOpen(true);
+                                    }}
+                                    className="cursor-pointer"
                                 >
                                     <Card hover className="h-full">
                                         <div className="h-48 bg-slate-100 rounded-t-2xl overflow-hidden relative group">
@@ -348,6 +359,14 @@ export default function CitiesPage() {
                     </div>
                 </div>
             </Modal>
-        </div>
+
+            {/* City Details Modal */}
+            < CityDetailsModal
+                isOpen={isDetailsModalOpen}
+                onClose={() => setIsDetailsModalOpen(false)
+                }
+                city={viewingCity}
+            />
+        </div >
     );
 }
