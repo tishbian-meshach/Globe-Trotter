@@ -9,6 +9,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Loading } from '@/components/ui/Spinner';
+import { useToast } from '@/components/ui/Toast';
 
 const activityTypes = [
     { value: 'all', label: 'All Types' },
@@ -35,83 +36,94 @@ const durationOptions = [
     { value: 'long', label: '4+ hours' },
 ];
 
-// Mock activities data (in real app, this would come from API)
-const mockActivities = [
-    {
-        id: '1',
-        name: 'Eiffel Tower Visit',
-        description: 'Visit the iconic Eiffel Tower and enjoy panoramic views of Paris',
-        type: 'sightseeing',
-        cost: 25,
-        duration: 120,
-        imageUrl: '',
-        location: 'Paris, France',
-        rating: 4.8,
-        reviews: 2341,
-    },
-    {
-        id: '2',
-        name: 'Seine River Cruise',
-        description: 'Romantic dinner cruise along the Seine with live music',
-        type: 'dining',
-        cost: 85,
-        duration: 180,
-        imageUrl: '',
-        location: 'Paris, France',
-        rating: 4.6,
-        reviews: 1543,
-    },
-    {
-        id: '3',
-        name: 'Louvre Museum Tour',
-        description: 'Guided tour of the world-famous Louvre Museum',
-        type: 'sightseeing',
-        cost: 45,
-        duration: 240,
-        imageUrl: '',
-        location: 'Paris, France',
-        rating: 4.9,
-        reviews: 3892,
-    },
-    {
-        id: '4',
-        name: 'Hot Air Balloon Ride',
-        description: 'Breathtaking hot air balloon experience over the countryside',
-        type: 'adventure',
-        cost: 220,
-        duration: 180,
-        imageUrl: '',
-        location: 'Paris, France',
-        rating: 4.7,
-        reviews: 876,
-    },
-    {
-        id: '5',
-        name: 'Spa Day at Luxury Resort',
-        description: 'Full day spa treatment with massage and wellness',
-        type: 'relaxation',
-        cost: 180,
-        duration: 360,
-        imageUrl: '',
-        location: 'Paris, France',
-        rating: 4.5,
-        reviews: 621,
-    },
-];
+// Removed mock activities
 
 export default function ActivitiesPage() {
+    const { showToast } = useToast();
+    const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [typeFilter, setTypeFilter] = useState('all');
     const [costFilter, setCostFilter] = useState('all');
     const [durationFilter, setDurationFilter] = useState('all');
-    const [activities, setActivities] = useState(mockActivities);
-    const [filteredActivities, setFilteredActivities] = useState(mockActivities);
+
+    const [activities, setActivities] = useState<any[]>([]);
+    const [filteredActivities, setFilteredActivities] = useState<any[]>([]);
+
     const [selectedActivity, setSelectedActivity] = useState<any>(null);
-    const [showModal, setShowModal] = useState(false);
+    const [showDetailModal, setShowDetailModal] = useState(false);
+
+    // Create State
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [cities, setCities] = useState<any[]>([]);
+    const [newActivity, setNewActivity] = useState({
+        name: '',
+        description: '',
+        type: 'sightseeing',
+        cost: 0,
+        duration: 60,
+        cityId: ''
+    });
+    const [isCreating, setIsCreating] = useState(false);
+
+    useEffect(() => {
+        fetchData();
+    }, []);
 
     useEffect(() => {
         filterActivities();
-    }, [searchQuery, typeFilter, costFilter, durationFilter]);
+    }, [searchQuery, typeFilter, costFilter, durationFilter, activities]);
+
+    const fetchData = async () => {
+        try {
+            const [actRes, cityRes] = await Promise.all([
+                fetch('/api/attractions'),
+                fetch('/api/cities')
+            ]);
+
+            const actData = await actRes.json();
+            const cityData = await cityRes.json();
+
+            // Transform data to match UI expectancies
+            const transformedActivities = actData.map((a: any) => ({
+                ...a,
+                location: a.city ? `${a.city.name}, ${a.city.country}` : 'Unknown'
+            }));
+
+            setActivities(transformedActivities);
+            setCities(cityData);
+        } catch (error) {
+            console.error('Fetch error:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleCreateActivity = async () => {
+        if (!newActivity.name || !newActivity.cityId) {
+            showToast({ title: 'Error', description: 'Name and City are required', type: 'error' });
+            return;
+        }
+
+        setIsCreating(true);
+        try {
+            const res = await fetch('/api/attractions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newActivity)
+            });
+
+            if (!res.ok) throw new Error('Failed to create');
+
+            await fetchData();
+            setIsCreateModalOpen(false);
+            setNewActivity({ name: '', description: '', type: 'sightseeing', cost: 0, duration: 60, cityId: '' });
+            showToast({ title: 'Success', description: 'Activity added successfully', type: 'success' });
+        } catch (error) {
+            showToast({ title: 'Error', description: 'Failed to create activity', type: 'error' });
+        } finally {
+            setIsCreating(false);
+        }
+    };
 
     const filterActivities = () => {
         let filtered = [...activities];
@@ -183,11 +195,16 @@ export default function ActivitiesPage() {
     return (
         <div className="space-y-8">
             {/* Header */}
-            <div>
-                <h1 className="text-4xl font-bold text-slate-900">Discover Activities</h1>
-                <p className="text-slate-600 mt-2">
-                    Find and plan amazing experiences for your trip
-                </p>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-4xl font-bold text-slate-900">Discover Activities</h1>
+                    <p className="text-slate-600 mt-2">
+                        Find and plan amazing experiences for your trip
+                    </p>
+                </div>
+                <Button onClick={() => setIsCreateModalOpen(true)}>
+                    + Add Activity
+                </Button>
             </div>
 
             {/* Filters */}
@@ -257,7 +274,7 @@ export default function ActivitiesPage() {
                             >
                                 <Card hover className="h-full cursor-pointer" onClick={() => {
                                     setSelectedActivity(activity);
-                                    setShowModal(true);
+                                    setShowDetailModal(true);
                                 }}>
                                     {/* Image Placeholder */}
                                     <div className="h-48 bg-gradient-to-br from-primary-400 to-teal-400 rounded-t-2xl flex items-center justify-center text-6xl">
@@ -311,9 +328,9 @@ export default function ActivitiesPage() {
             {/* Activity Detail Modal */}
             {selectedActivity && (
                 <Modal
-                    isOpen={showModal}
+                    isOpen={showDetailModal}
                     onClose={() => {
-                        setShowModal(false);
+                        setShowDetailModal(false);
                         setSelectedActivity(null);
                     }}
                     title={selectedActivity.name}
@@ -369,7 +386,7 @@ export default function ActivitiesPage() {
 
                         {/* Actions */}
                         <div className="flex gap-3">
-                            <Button variant="outline" onClick={() => setShowModal(false)} className="flex-1">
+                            <Button variant="outline" onClick={() => setShowDetailModal(false)} className="flex-1">
                                 Close
                             </Button>
                             <Button className="flex-1">
@@ -379,6 +396,67 @@ export default function ActivitiesPage() {
                     </div>
                 </Modal>
             )}
+
+            {/* Create Activity Modal */}
+            <Modal
+                isOpen={isCreateModalOpen}
+                onClose={() => setIsCreateModalOpen(false)}
+                title="Add New Activity"
+            >
+                <div className="space-y-4">
+                    <Dropdown
+                        label="City"
+                        options={cities.map(c => ({ value: c.id, label: `${c.name}, ${c.country}` }))}
+                        value={newActivity.cityId}
+                        onChange={(value) => setNewActivity({ ...newActivity, cityId: value })}
+                        placeholder="Select a city"
+                    />
+                    <Input
+                        label="Activity Name"
+                        value={newActivity.name}
+                        onChange={(e) => setNewActivity({ ...newActivity, name: e.target.value })}
+                        placeholder="e.g. Louvre Museum"
+                    />
+                    <Dropdown
+                        label="Type"
+                        options={activityTypes.filter(t => t.value !== 'all')}
+                        value={newActivity.type}
+                        onChange={(value) => setNewActivity({ ...newActivity, type: value })}
+                    />
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
+                        <textarea
+                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            rows={3}
+                            value={newActivity.description}
+                            onChange={(e) => setNewActivity({ ...newActivity, description: e.target.value })}
+                        />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <Input
+                            label="Cost ($)"
+                            type="number"
+                            value={newActivity.cost}
+                            onChange={(e) => setNewActivity({ ...newActivity, cost: parseFloat(e.target.value) || 0 })}
+                        />
+                        <Input
+                            label="Duration (minutes)"
+                            type="number"
+                            value={newActivity.duration}
+                            onChange={(e) => setNewActivity({ ...newActivity, duration: parseInt(e.target.value) || 0 })}
+                        />
+                    </div>
+                    <div className="flex gap-4 pt-4">
+                        <Button variant="outline" onClick={() => setIsCreateModalOpen(false)} className="flex-1">
+                            Cancel
+                        </Button>
+                        <Button onClick={handleCreateActivity} isLoading={isCreating} className="flex-1">
+                            Create Activity
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
         </div>
     );
 }

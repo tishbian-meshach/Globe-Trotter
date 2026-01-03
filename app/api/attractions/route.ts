@@ -2,6 +2,29 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 
+export async function GET(request: NextRequest) {
+    try {
+        const session = await auth();
+        if (!session?.user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const attractions = await prisma.attraction.findMany({
+            include: {
+                city: true,
+            },
+            orderBy: {
+                name: 'asc',
+            },
+        });
+
+        return NextResponse.json(attractions);
+    } catch (error) {
+        console.error('Get attractions error:', error);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
+}
+
 export async function POST(request: NextRequest) {
     try {
         const session = await auth();

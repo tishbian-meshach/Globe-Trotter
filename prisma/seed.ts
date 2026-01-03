@@ -10,11 +10,14 @@ async function main() {
     const hashedPassword = await bcrypt.hash('demo123', 10);
     const user = await prisma.user.upsert({
         where: { email: 'demo@globetrotter.com' },
-        update: {},
+        update: {
+            isAdmin: true,
+        },
         create: {
             email: 'demo@globetrotter.com',
             password: hashedPassword,
             name: 'Demo User',
+            isAdmin: true,
             savedDestinations: [],
         },
     });
@@ -103,6 +106,13 @@ async function main() {
                 popularity: 88,
                 latitude: 41.3851,
                 longitude: 2.1734,
+                attractions: {
+                    create: [
+                        { name: 'Sagrada Familia', type: 'sightseeing', cost: 26, duration: 150, description: 'Gaudi\'s masterpiece basilica' },
+                        { name: 'Park Guell', type: 'sightseeing', cost: 10, duration: 120, description: 'Public park system with gardens and architectonic elements' },
+                        { name: 'Beach Day at Barceloneta', type: 'relaxation', cost: 0, duration: 360, description: 'Relax on the Mediterranean coast' }
+                    ]
+                }
             },
         }),
         prisma.city.upsert({
@@ -118,6 +128,13 @@ async function main() {
                 popularity: 85,
                 latitude: -8.3405,
                 longitude: 115.0920,
+                attractions: {
+                    create: [
+                        { name: 'Uluwatu Temple', type: 'sightseeing', cost: 5, duration: 90, description: 'Sea temple on a cliff' },
+                        { name: 'Sacred Monkey Forest', type: 'adventure', cost: 10, duration: 120, description: 'Sanctuary for monkeys' },
+                        { name: 'Rice Terraces', type: 'sightseeing', cost: 0, duration: 60, description: 'Scenic green tiered fields' }
+                    ]
+                }
             },
         }),
         prisma.city.upsert({
@@ -133,6 +150,13 @@ async function main() {
                 popularity: 87,
                 latitude: 25.2048,
                 longitude: 55.2708,
+                attractions: {
+                    create: [
+                        { name: 'Burj Khalifa', type: 'sightseeing', cost: 50, duration: 120, description: 'Tallest building in the world' },
+                        { name: 'Dubai Mall', type: 'shopping', cost: 0, duration: 240, description: 'Massive shopping and entertainment complex' },
+                        { name: 'Desert Safari', type: 'adventure', cost: 80, duration: 360, description: 'Dune bashing and dinner' }
+                    ]
+                }
             },
         }),
         prisma.city.upsert({
@@ -148,6 +172,13 @@ async function main() {
                 popularity: 93,
                 latitude: 51.5074,
                 longitude: -0.1278,
+                attractions: {
+                    create: [
+                        { name: 'British Museum', type: 'sightseeing', cost: 0, duration: 180, description: 'Human history and culture' },
+                        { name: 'London Eye', type: 'sightseeing', cost: 35, duration: 45, description: 'Observation wheel' },
+                        { name: 'Tower of London', type: 'sightseeing', cost: 30, duration: 120, description: 'Historic castle and prison' }
+                    ]
+                }
             },
         }),
         prisma.city.upsert({
@@ -163,11 +194,23 @@ async function main() {
                 popularity: 91,
                 latitude: 41.9028,
                 longitude: 12.4964,
+                attractions: {
+                    create: [
+                        { name: 'Colosseum Tour', type: 'sightseeing', cost: 30, duration: 180, description: 'Ancient Roman amphitheater' },
+                        { name: 'Vatican Museums', type: 'sightseeing', cost: 35, duration: 240, description: 'Art collections and Sistine Chapel' },
+                        { name: 'Trevi Fountain', type: 'sightseeing', cost: 0, duration: 30, description: 'Baroque fountain' }
+                    ]
+                }
             },
         }),
     ]);
 
     console.log(`✅ Created ${cities.length} cities`);
+
+    // Need to re-fetch cities to get attraction IDs
+    const paris = await prisma.city.findFirst({ where: { name: 'Paris' }, include: { attractions: true } });
+    const barcelona = await prisma.city.findFirst({ where: { name: 'Barcelona' }, include: { attractions: true } });
+    const rome = await prisma.city.findFirst({ where: { name: 'Rome' }, include: { attractions: true } });
 
     // Create a sample trip
     const trip = await prisma.trip.create({
@@ -182,7 +225,7 @@ async function main() {
             stops: {
                 create: [
                     {
-                        cityId: cities[0].id, // Paris
+                        cityId: paris!.id,
                         startDate: new Date('2026-06-01'),
                         endDate: new Date('2026-06-07'),
                         order: 1,
@@ -190,30 +233,20 @@ async function main() {
                         activities: {
                             create: [
                                 {
-                                    name: 'Eiffel Tower Visit',
-                                    description: 'Iconic landmark with stunning city views',
-                                    type: 'sightseeing',
-                                    cost: 25,
-                                    duration: 120,
-                                    date: new Date('2026-06-02'),
+                                    attractionId: paris!.attractions.find(a => a.name === 'Eiffel Tower')?.id,
                                     time: '10:00',
-                                    imageUrl: '/images/activities/eiffel.jpg',
+                                    date: new Date('2026-06-02'),
                                 },
                                 {
-                                    name: 'Louvre Museum',
-                                    description: 'World-famous art museum',
-                                    type: 'sightseeing',
-                                    cost: 17,
-                                    duration: 240,
-                                    date: new Date('2026-06-03'),
+                                    attractionId: paris!.attractions.find(a => a.name === 'Louvre Museum')?.id,
                                     time: '09:00',
-                                    imageUrl: '/images/activities/louvre.jpg',
+                                    date: new Date('2026-06-03'),
                                 },
                             ],
                         },
                     },
                     {
-                        cityId: cities[3].id, // Barcelona
+                        cityId: barcelona!.id,
                         startDate: new Date('2026-06-08'),
                         endDate: new Date('2026-06-14'),
                         order: 2,
@@ -221,28 +254,16 @@ async function main() {
                         activities: {
                             create: [
                                 {
-                                    name: 'Sagrada Familia',
-                                    description: 'Gaudi\'s masterpiece basilica',
-                                    type: 'sightseeing',
-                                    cost: 26,
-                                    duration: 150,
-                                    date: new Date('2026-06-09'),
+                                    // Custom name override example if needed, but linking to attraction
+                                    attractionId: barcelona!.attractions[0]?.id, // Sagrada Familia likely
                                     time: '11:00',
-                                },
-                                {
-                                    name: 'Beach Day at Barceloneta',
-                                    description: 'Relax on the Mediterranean coast',
-                                    type: 'relaxation',
-                                    cost: 0,
-                                    duration: 360,
-                                    date: new Date('2026-06-11'),
-                                    time: '10:00',
+                                    date: new Date('2026-06-09'),
                                 },
                             ],
                         },
                     },
                     {
-                        cityId: cities[7].id, // Rome
+                        cityId: rome!.id,
                         startDate: new Date('2026-06-15'),
                         endDate: new Date('2026-06-21'),
                         order: 3,
@@ -250,22 +271,9 @@ async function main() {
                         activities: {
                             create: [
                                 {
-                                    name: 'Colosseum Tour',
-                                    description: 'Ancient Roman amphitheater',
-                                    type: 'sightseeing',
-                                    cost: 30,
-                                    duration: 180,
-                                    date: new Date('2026-06-16'),
+                                    attractionId: rome!.attractions.find(a => a.name === 'Colosseum Tour')?.id, // Note: Seed has 'Colosseum Tour'
                                     time: '09:00',
-                                },
-                                {
-                                    name: 'Vatican Museums',
-                                    description: 'Art collections and Sistine Chapel',
-                                    type: 'sightseeing',
-                                    cost: 35,
-                                    duration: 240,
-                                    date: new Date('2026-06-18'),
-                                    time: '08:00',
+                                    date: new Date('2026-06-16'),
                                 },
                             ],
                         },

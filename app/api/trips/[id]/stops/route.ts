@@ -41,11 +41,12 @@ export async function POST(
                         notes: stop.notes || null,
                         activities: {
                             create: stop.activities?.map((activity: any) => ({
+                                attractionId: activity.attractionId !== 'custom' ? activity.attractionId : null,
                                 name: activity.name,
                                 cost: parseFloat(activity.cost) || 0,
                                 type: activity.type || 'other',
                                 duration: parseInt(activity.duration) || null,
-                                location: activity.location || null,
+                                isCustom: activity.attractionId === 'custom',
                             })) || [],
                         },
                     },

@@ -28,6 +28,7 @@ interface City {
 
 interface Activity {
     _key: string;
+    attractionId: string;
     name: string;
     cost: number;
     type: string;
@@ -92,9 +93,10 @@ export default function ItineraryBuilderPage({ params }: PageProps) {
                 activities: stop.activities?.map((a: any) => ({
                     _key: uuidv4(),
                     id: a.id,
-                    name: a.name,
-                    cost: a.cost,
-                    type: a.type || 'other'
+                    attractionId: a.attractionId || 'custom',
+                    name: a.name || a.attraction?.name || '',
+                    cost: a.cost || a.attraction?.cost || 0,
+                    type: a.type || a.attraction?.type || 'other'
                 })) || []
             }));
 
@@ -133,6 +135,7 @@ export default function ItineraryBuilderPage({ params }: PageProps) {
         if (attractionId === 'custom') {
             newActivity = {
                 _key: uuidv4(),
+                attractionId: 'custom',
                 name: '',
                 cost: 0,
                 type: 'sightseeing'
@@ -143,6 +146,7 @@ export default function ItineraryBuilderPage({ params }: PageProps) {
 
             newActivity = {
                 _key: uuidv4(),
+                attractionId: attraction.id,
                 name: attraction.name,
                 cost: attraction.cost,
                 type: attraction.type

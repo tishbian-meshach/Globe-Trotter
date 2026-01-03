@@ -5,8 +5,11 @@ import { motion } from 'framer-motion';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Dropdown } from '@/components/ui/Dropdown';
+import { Modal } from '@/components/ui/Modal';
+import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Loading } from '@/components/ui/Spinner';
+import { useToast } from '@/components/ui/Toast';
 
 interface City {
     id: string;
@@ -22,8 +25,21 @@ export default function CitiesPage() {
     const [cities, setCities] = useState<City[]>([]);
     const [filteredCities, setFilteredCities] = useState<City[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const { showToast } = useToast();
     const [searchQuery, setSearchQuery] = useState('');
     const [regionFilter, setRegionFilter] = useState('all');
+
+    // Create Modal State
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [newCity, setNewCity] = useState({
+        name: '',
+        country: '',
+        region: '',
+        description: '',
+        costIndex: 50,
+        popularity: 50
+    });
+    const [isCreating, setIsCreating] = useState(false);
 
     useEffect(() => {
         fetchCities();
@@ -76,6 +92,33 @@ export default function CitiesPage() {
         return { label: 'Expensive', variant: 'danger' as const };
     };
 
+    const handleCreateCity = async () => {
+        if (!newCity.name || !newCity.country) {
+            showToast({ title: 'Error', description: 'Name and Country are required', type: 'error' });
+            return;
+        }
+
+        setIsCreating(true);
+        try {
+            const res = await fetch('/api/cities', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newCity)
+            });
+
+            if (!res.ok) throw new Error('Failed to create');
+
+            await fetchCities();
+            setIsCreateModalOpen(false);
+            setNewCity({ name: '', country: '', region: '', description: '', costIndex: 50, popularity: 50 });
+            showToast({ title: 'Success', description: 'City added successfully', type: 'success' });
+        } catch (error) {
+            showToast({ title: 'Error', description: 'Failed to create city', type: 'error' });
+        } finally {
+            setIsCreating(false);
+        }
+    };
+
     if (isLoading) {
         return <Loading text="Loading cities..." />;
     }
@@ -83,11 +126,16 @@ export default function CitiesPage() {
     return (
         <div className="space-y-8">
             {/* Header */}
-            <div>
-                <h1 className="text-4xl font-bold text-slate-900">Explore Cities</h1>
-                <p className="text-slate-600 mt-2">
-                    Discover amazing destinations for your next trip
-                </p>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-4xl font-bold text-slate-900">Explore Cities</h1>
+                    <p className="text-slate-600 mt-2">
+                        Discover amazing destinations for your next trip
+                    </p>
+                </div>
+                <Button onClick={() => setIsCreateModalOpen(true)}>
+                    + Add City
+                </Button>
             </div>
 
             {/* Filters */}
@@ -181,6 +229,68 @@ export default function CitiesPage() {
                     </div>
                 )}
             </div>
+
+            {/* Create City Modal */}
+            <Modal
+                isOpen={isCreateModalOpen}
+                onClose={() => setIsCreateModalOpen(false)}
+                title="Add New City"
+            >
+                <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                        <Input
+                            label="City Name"
+                            value={newCity.name}
+                            onChange={(e) => setNewCity({ ...newCity, name: e.target.value })}
+                            placeholder="e.g. Paris"
+                        />
+                        <Input
+                            label="Country"
+                            value={newCity.country}
+                            onChange={(e) => setNewCity({ ...newCity, country: e.target.value })}
+                            placeholder="e.g. France"
+                        />
+                    </div>
+                    <Input
+                        label="Region"
+                        value={newCity.region}
+                        onChange={(e) => setNewCity({ ...newCity, region: e.target.value })}
+                        placeholder="e.g. Europe"
+                    />
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
+                        <textarea
+                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            rows={3}
+                            value={newCity.description}
+                            onChange={(e) => setNewCity({ ...newCity, description: e.target.value })}
+                            placeholder="Brief description of the city..."
+                        />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <Input
+                            label="Cost Index (0-100)"
+                            type="number"
+                            value={newCity.costIndex}
+                            onChange={(e) => setNewCity({ ...newCity, costIndex: parseInt(e.target.value) || 0 })}
+                        />
+                        <Input
+                            label="Popularity (0-100)"
+                            type="number"
+                            value={newCity.popularity}
+                            onChange={(e) => setNewCity({ ...newCity, popularity: parseInt(e.target.value) || 0 })}
+                        />
+                    </div>
+                    <div className="flex gap-4 pt-4">
+                        <Button variant="outline" onClick={() => setIsCreateModalOpen(false)} className="flex-1">
+                            Cancel
+                        </Button>
+                        <Button onClick={handleCreateCity} isLoading={isCreating} className="flex-1">
+                            Create City
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 }
