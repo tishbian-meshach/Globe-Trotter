@@ -38,7 +38,8 @@ const privacyOptions = [
 ];
 
 export default function SettingsPage() {
-    const { data: session } = useSession();
+    const sessionData = useSession();
+    const session = sessionData?.data;
     const router = useRouter();
     const { showToast } = useToast();
 

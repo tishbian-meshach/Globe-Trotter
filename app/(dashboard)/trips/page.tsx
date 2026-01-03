@@ -40,7 +40,18 @@ export default async function TripsPage() {
         return (
             <Link href={`/trips/${trip.id}`}>
                 <Card hover className="h-full">
-                    <div className="h-40 bg-gradient-to-br from-primary-400 to-teal-400 rounded-t-2xl" />
+                    <div className="h-48 bg-slate-200 rounded-t-2xl overflow-hidden">
+                        {trip.coverImage ? (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img
+                                src={trip.coverImage}
+                                alt={trip.name}
+                                className="w-full h-full object-cover"
+                            />
+                        ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-primary-400 to-teal-400" />
+                        )}
+                    </div>
                     <CardHeader>
                         <div className="flex items-start justify-between gap-2">
                             <div className="flex-1 min-w-0">

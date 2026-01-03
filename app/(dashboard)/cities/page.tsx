@@ -11,6 +11,8 @@ import { Badge } from '@/components/ui/Badge';
 import { Loading } from '@/components/ui/Spinner';
 import { useToast } from '@/components/ui/Toast';
 import { ImageUpload } from '@/components/ui/ImageUpload';
+import { CityDetailsModal } from '@/components/modals/CityDetailsModal';
+import { FaBookmark, FaRegBookmark, FaEdit } from 'react-icons/fa';
 
 interface City {
     id: string;
@@ -21,6 +23,7 @@ interface City {
     costIndex: number;
     popularity: number;
     imageUrl?: string | null;
+    attractions?: any[];
 }
 
 export default function CitiesPage() {
@@ -45,8 +48,16 @@ export default function CitiesPage() {
     const [isSaving, setIsSaving] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
 
+    // Detail Modal State
+    const [viewingCity, setViewingCity] = useState<City | null>(null);
+    const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+
+    // Saved Destinations State
+    const [savedDestinations, setSavedDestinations] = useState<string[]>([]);
+
     useEffect(() => {
         fetchCities();
+        fetchSavedDestinations();
     }, []);
 
     useEffect(() => {
@@ -62,6 +73,42 @@ export default function CitiesPage() {
             console.error('Failed to fetch cities:', error);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const fetchSavedDestinations = async () => {
+        try {
+            const response = await fetch('/api/user/saved-destinations');
+            const data = await response.json();
+            setSavedDestinations(data.savedDestinations || []);
+        } catch (error) {
+            console.error('Failed to fetch saved destinations:', error);
+        }
+    };
+
+    const toggleSaveDestination = async (cityId: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        e.preventDefault();
+
+        try {
+            const response = await fetch('/api/user/saved-destinations', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cityId })
+            });
+
+            if (!response.ok) throw new Error('Failed to save');
+
+            const data = await response.json();
+            setSavedDestinations(data.savedDestinations);
+
+            showToast({
+                title: data.isSaved ? 'Saved' : 'Removed',
+                description: data.isSaved ? 'City added to your saved destinations' : 'City removed from saved destinations',
+                type: 'success'
+            });
+        } catch (error) {
+            showToast({ title: 'Error', description: 'Failed to update saved destinations', type: 'error' });
         }
     };
 
@@ -212,6 +259,11 @@ export default function CitiesPage() {
                                     initial={{ opacity: 0, scale: 0.95 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     transition={{ duration: 0.2 }}
+                                    onClick={() => {
+                                        setViewingCity(city);
+                                        setIsDetailsModalOpen(true);
+                                    }}
+                                    className="cursor-pointer"
                                 >
                                     <Card hover className="h-full">
                                         <div className="h-48 bg-slate-100 rounded-t-2xl overflow-hidden relative group">
@@ -226,7 +278,18 @@ export default function CitiesPage() {
                                                 <div className="w-full h-full bg-gradient-to-br from-teal-400 to-primary-500" />
                                             )}
 
-                                            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button
+                                                    onClick={(e) => toggleSaveDestination(city.id, e)}
+                                                    className="bg-white/90 p-2 rounded-full text-slate-700 hover:text-primary-600 shadow-sm"
+                                                    title={savedDestinations.includes(city.id) ? 'Remove from saved' : 'Save destination'}
+                                                >
+                                                    {savedDestinations.includes(city.id) ? (
+                                                        <FaBookmark className="w-4 h-4 text-primary-500" />
+                                                    ) : (
+                                                        <FaRegBookmark className="w-4 h-4" />
+                                                    )}
+                                                </button>
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
@@ -348,6 +411,14 @@ export default function CitiesPage() {
                     </div>
                 </div>
             </Modal>
-        </div>
+
+            {/* City Details Modal */}
+            < CityDetailsModal
+                isOpen={isDetailsModalOpen}
+                onClose={() => setIsDetailsModalOpen(false)
+                }
+                city={viewingCity}
+            />
+        </div >
     );
 }

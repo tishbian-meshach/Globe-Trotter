@@ -190,7 +190,18 @@ export default async function DashboardPage() {
                     {recommendedCities.map((city) => (
                         <Link key={city.id} href={`/cities?search=${city.name}`}>
                             <Card hover className="h-full">
-                                <div className="h-32 bg-gradient-to-br from-teal-400 to-primary-500 rounded-t-2xl" />
+                                <div className="h-32 bg-slate-200 rounded-t-2xl overflow-hidden">
+                                    {city.imageUrl ? (
+                                        /* eslint-disable-next-line @next/next/no-img-element */
+                                        <img
+                                            src={city.imageUrl}
+                                            alt={city.name}
+                                            className="w-full h-full object-cover"
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full bg-gradient-to-br from-teal-400 to-primary-500" />
+                                    )}
+                                </div>
                                 <CardHeader>
                                     <CardTitle className="text-lg">{city.name}</CardTitle>
                                     <CardDescription>{city.country}</CardDescription>

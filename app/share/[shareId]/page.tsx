@@ -129,7 +129,7 @@ export default async function SharedTripPage({ params }: PageProps) {
                                                         {activity.duration && (
                                                             <span>{activity.duration} minutes</span>
                                                         )}
-                                                        {activity.cost > 0 && (
+                                                        {activity.cost !== null && activity.cost > 0 && (
                                                             <span>${activity.cost.toFixed(2)}</span>
                                                         )}
                                                     </div>
