@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Loading } from '@/components/ui/Spinner';
 import { useToast } from '@/components/ui/Toast';
+import { ImageUpload } from '@/components/ui/ImageUpload';
 
 const activityTypes = [
     { value: 'all', label: 'All Types' },
@@ -55,15 +56,17 @@ export default function ActivitiesPage() {
     // Create State
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [cities, setCities] = useState<any[]>([]);
-    const [newActivity, setNewActivity] = useState({
+    const [newActivity, setNewActivity] = useState<any>({
         name: '',
         description: '',
         type: 'sightseeing',
         cost: 0,
         duration: 60,
-        cityId: ''
+        cityId: '',
+        imageUrl: ''
     });
-    const [isCreating, setIsCreating] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
 
     useEffect(() => {
         fetchData();
@@ -98,31 +101,54 @@ export default function ActivitiesPage() {
         }
     };
 
-    const handleCreateActivity = async () => {
+    const handleSaveActivity = async () => {
         if (!newActivity.name || !newActivity.cityId) {
             showToast({ title: 'Error', description: 'Name and City are required', type: 'error' });
             return;
         }
 
-        setIsCreating(true);
+        setIsSaving(true);
         try {
-            const res = await fetch('/api/attractions', {
-                method: 'POST',
+            const url = editingId ? `/api/attractions/${editingId}` : '/api/attractions';
+            const method = editingId ? 'PUT' : 'POST';
+
+            const res = await fetch(url, {
+                method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newActivity)
             });
 
-            if (!res.ok) throw new Error('Failed to create');
+            if (!res.ok) throw new Error('Failed to save');
 
             await fetchData();
             setIsCreateModalOpen(false);
-            setNewActivity({ name: '', description: '', type: 'sightseeing', cost: 0, duration: 60, cityId: '' });
-            showToast({ title: 'Success', description: 'Activity added successfully', type: 'success' });
+            setNewActivity({ name: '', description: '', type: 'sightseeing', cost: 0, duration: 60, cityId: '', imageUrl: '' });
+            setEditingId(null);
+            showToast({
+                title: 'Success',
+                description: `Activity ${editingId ? 'updated' : 'added'} successfully`,
+                type: 'success'
+            });
         } catch (error) {
-            showToast({ title: 'Error', description: 'Failed to create activity', type: 'error' });
+            showToast({ title: 'Error', description: 'Failed to save activity', type: 'error' });
         } finally {
-            setIsCreating(false);
+            setIsSaving(false);
         }
+    };
+
+    const openEditModal = (activity: any) => {
+        setNewActivity({
+            ...activity,
+            cityId: activity.cityId || (activity.city ? activity.city.id : '')
+        });
+        setEditingId(activity.id);
+        setIsCreateModalOpen(true);
+    };
+
+    const openCreateModal = () => {
+        setNewActivity({ name: '', description: '', type: 'sightseeing', cost: 0, duration: 60, cityId: '', imageUrl: '' });
+        setEditingId(null);
+        setIsCreateModalOpen(true);
     };
 
     const filterActivities = () => {
@@ -206,7 +232,7 @@ export default function ActivitiesPage() {
                         Find and plan amazing experiences for your trip
                     </p>
                 </div>
-                <Button onClick={() => setIsCreateModalOpen(true)}>
+                <Button onClick={openCreateModal}>
                     + Add Activity
                 </Button>
             </div>
@@ -280,9 +306,35 @@ export default function ActivitiesPage() {
                                     setSelectedActivity(activity);
                                     setShowDetailModal(true);
                                 }}>
-                                    {/* Image Placeholder */}
-                                    <div className="h-48 bg-gradient-to-br from-primary-400 to-teal-400 rounded-t-2xl flex items-center justify-center text-6xl">
-                                        {getTypeIcon(activity.type)}
+                                    {/* Image */}
+                                    <div className="h-48 bg-slate-100 rounded-t-2xl overflow-hidden relative group">
+                                        {activity.imageUrl ? (
+                                            /* eslint-disable-next-line @next/next/no-img-element */
+                                            <img
+                                                src={activity.imageUrl}
+                                                alt={activity.name}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full bg-gradient-to-br from-primary-400 to-teal-400 flex items-center justify-center text-6xl">
+                                                {getTypeIcon(activity.type)}
+                                            </div>
+                                        )}
+
+                                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    e.preventDefault();
+                                                    openEditModal(activity);
+                                                }}
+                                                className="bg-white/90 p-2 rounded-full text-slate-700 hover:text-primary-600 shadow-sm"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                </svg>
+                                            </button>
+                                        </div>
                                     </div>
 
                                     <CardHeader>
@@ -341,8 +393,19 @@ export default function ActivitiesPage() {
                 >
                     <div className="space-y-6">
                         {/* Image */}
-                        <div className="h-64 bg-gradient-to-br from-primary-400 to-teal-400 rounded-xl flex items-center justify-center text-8xl">
-                            {getTypeIcon(selectedActivity.type)}
+                        <div className="h-64 bg-slate-100 rounded-xl overflow-hidden relative">
+                            {selectedActivity.imageUrl ? (
+                                /* eslint-disable-next-line @next/next/no-img-element */
+                                <img
+                                    src={selectedActivity.imageUrl}
+                                    alt={selectedActivity.name}
+                                    className="w-full h-full object-cover"
+                                />
+                            ) : (
+                                <div className="w-full h-full bg-gradient-to-br from-primary-400 to-teal-400 flex items-center justify-center text-8xl">
+                                    {getTypeIcon(selectedActivity.type)}
+                                </div>
+                            )}
                         </div>
 
                         {/* Details */}
@@ -405,7 +468,7 @@ export default function ActivitiesPage() {
             <Modal
                 isOpen={isCreateModalOpen}
                 onClose={() => setIsCreateModalOpen(false)}
-                title="Add New Activity"
+                title={editingId ? "Edit Activity" : "Add New Activity"}
             >
                 <div className="space-y-4">
                     <Dropdown
@@ -436,6 +499,13 @@ export default function ActivitiesPage() {
                             onChange={(e) => setNewActivity({ ...newActivity, description: e.target.value })}
                         />
                     </div>
+
+                    <ImageUpload
+                        label="Activity Image"
+                        value={newActivity.imageUrl}
+                        onChange={(url) => setNewActivity({ ...newActivity, imageUrl: url })}
+                    />
+
                     <div className="grid grid-cols-2 gap-4">
                         <Input
                             label="Cost ($)"
@@ -454,8 +524,8 @@ export default function ActivitiesPage() {
                         <Button variant="outline" onClick={() => setIsCreateModalOpen(false)} className="flex-1">
                             Cancel
                         </Button>
-                        <Button onClick={handleCreateActivity} isLoading={isCreating} className="flex-1">
-                            Create Activity
+                        <Button onClick={handleSaveActivity} isLoading={isSaving} className="flex-1">
+                            {editingId ? 'Save Changes' : 'Create Activity'}
                         </Button>
                     </div>
                 </div>

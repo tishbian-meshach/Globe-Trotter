@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Loading } from '@/components/ui/Spinner';
 import { useToast } from '@/components/ui/Toast';
+import { ImageUpload } from '@/components/ui/ImageUpload';
 
 interface City {
     id: string;
@@ -19,6 +20,7 @@ interface City {
     description: string | null;
     costIndex: number;
     popularity: number;
+    imageUrl?: string | null;
 }
 
 export default function CitiesPage() {
@@ -31,15 +33,17 @@ export default function CitiesPage() {
 
     // Create Modal State
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [newCity, setNewCity] = useState({
+    const [newCity, setNewCity] = useState<Partial<City>>({
         name: '',
         country: '',
         region: '',
         description: '',
         costIndex: 50,
-        popularity: 50
+        popularity: 50,
+        imageUrl: ''
     });
-    const [isCreating, setIsCreating] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
 
     useEffect(() => {
         fetchCities();
@@ -92,31 +96,51 @@ export default function CitiesPage() {
         return { label: 'Expensive', variant: 'danger' as const };
     };
 
-    const handleCreateCity = async () => {
+    const handleSaveCity = async () => {
         if (!newCity.name || !newCity.country) {
             showToast({ title: 'Error', description: 'Name and Country are required', type: 'error' });
             return;
         }
 
-        setIsCreating(true);
+        setIsSaving(true);
         try {
-            const res = await fetch('/api/cities', {
-                method: 'POST',
+            const url = editingId ? `/api/cities/${editingId}` : '/api/cities';
+            const method = editingId ? 'PUT' : 'POST';
+
+            const res = await fetch(url, {
+                method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newCity)
             });
 
-            if (!res.ok) throw new Error('Failed to create');
+            if (!res.ok) throw new Error('Failed to save');
 
             await fetchCities();
             setIsCreateModalOpen(false);
-            setNewCity({ name: '', country: '', region: '', description: '', costIndex: 50, popularity: 50 });
-            showToast({ title: 'Success', description: 'City added successfully', type: 'success' });
+            setNewCity({ name: '', country: '', region: '', description: '', costIndex: 50, popularity: 50, imageUrl: '' });
+            setEditingId(null);
+            showToast({
+                title: 'Success',
+                description: `City ${editingId ? 'updated' : 'added'} successfully`,
+                type: 'success'
+            });
         } catch (error) {
-            showToast({ title: 'Error', description: 'Failed to create city', type: 'error' });
+            showToast({ title: 'Error', description: 'Failed to save city', type: 'error' });
         } finally {
-            setIsCreating(false);
+            setIsSaving(false);
         }
+    };
+
+    const openEditModal = (city: City) => {
+        setNewCity(city);
+        setEditingId(city.id);
+        setIsCreateModalOpen(true);
+    };
+
+    const openCreateModal = () => {
+        setNewCity({ name: '', country: '', region: '', description: '', costIndex: 50, popularity: 50, imageUrl: '' });
+        setEditingId(null);
+        setIsCreateModalOpen(true);
     };
 
     if (isLoading) {
@@ -133,7 +157,7 @@ export default function CitiesPage() {
                         Discover amazing destinations for your next trip
                     </p>
                 </div>
-                <Button onClick={() => setIsCreateModalOpen(true)}>
+                <Button onClick={openCreateModal}>
                     + Add City
                 </Button>
             </div>
@@ -190,7 +214,33 @@ export default function CitiesPage() {
                                     transition={{ duration: 0.2 }}
                                 >
                                     <Card hover className="h-full">
-                                        <div className="h-48 bg-gradient-to-br from-teal-400 to-primary-500 rounded-t-2xl" />
+                                        <div className="h-48 bg-slate-100 rounded-t-2xl overflow-hidden relative group">
+                                            {city.imageUrl ? (
+                                                /* eslint-disable-next-line @next/next/no-img-element */
+                                                <img
+                                                    src={city.imageUrl}
+                                                    alt={city.name}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full bg-gradient-to-br from-teal-400 to-primary-500" />
+                                            )}
+
+                                            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        e.preventDefault();
+                                                        openEditModal(city);
+                                                    }}
+                                                    className="bg-white/90 p-2 rounded-full text-slate-700 hover:text-primary-600 shadow-sm"
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </div>
 
                                         <CardHeader>
                                             <div className="flex items-start justify-between gap-2">
@@ -234,26 +284,26 @@ export default function CitiesPage() {
             <Modal
                 isOpen={isCreateModalOpen}
                 onClose={() => setIsCreateModalOpen(false)}
-                title="Add New City"
+                title={editingId ? "Edit City" : "Add New City"}
             >
                 <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                         <Input
                             label="City Name"
-                            value={newCity.name}
+                            value={newCity.name || ''}
                             onChange={(e) => setNewCity({ ...newCity, name: e.target.value })}
                             placeholder="e.g. Paris"
                         />
                         <Input
                             label="Country"
-                            value={newCity.country}
+                            value={newCity.country || ''}
                             onChange={(e) => setNewCity({ ...newCity, country: e.target.value })}
                             placeholder="e.g. France"
                         />
                     </div>
                     <Input
                         label="Region"
-                        value={newCity.region}
+                        value={newCity.region || ''}
                         onChange={(e) => setNewCity({ ...newCity, region: e.target.value })}
                         placeholder="e.g. Europe"
                     />
@@ -262,11 +312,18 @@ export default function CitiesPage() {
                         <textarea
                             className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                             rows={3}
-                            value={newCity.description}
+                            value={newCity.description || ''}
                             onChange={(e) => setNewCity({ ...newCity, description: e.target.value })}
                             placeholder="Brief description of the city..."
                         />
                     </div>
+
+                    <ImageUpload
+                        label="City Image"
+                        value={newCity.imageUrl}
+                        onChange={(url) => setNewCity({ ...newCity, imageUrl: url })}
+                    />
+
                     <div className="grid grid-cols-2 gap-4">
                         <Input
                             label="Cost Index (0-100)"
@@ -285,8 +342,8 @@ export default function CitiesPage() {
                         <Button variant="outline" onClick={() => setIsCreateModalOpen(false)} className="flex-1">
                             Cancel
                         </Button>
-                        <Button onClick={handleCreateCity} isLoading={isCreating} className="flex-1">
-                            Create City
+                        <Button onClick={handleSaveCity} isLoading={isSaving} className="flex-1">
+                            {editingId ? 'Save Changes' : 'Create City'}
                         </Button>
                     </div>
                 </div>

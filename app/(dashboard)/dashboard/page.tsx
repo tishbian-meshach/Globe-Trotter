@@ -116,9 +116,17 @@ export default async function DashboardPage() {
                             return (
                                 <Link key={trip.id} href={`/trips/${trip.id}`}>
                                     <Card hover className="h-full">
-                                        {trip.coverImage && (
+                                        {trip.coverImage ? (
                                             <div className="h-48 bg-slate-200 rounded-t-2xl overflow-hidden">
-                                                {/* Placeholder for image */}
+                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                <img
+                                                    src={trip.coverImage}
+                                                    alt={trip.name}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            </div>
+                                        ) : (
+                                            <div className="h-48 bg-slate-200 rounded-t-2xl overflow-hidden">
                                                 <div className="w-full h-full bg-gradient-to-br from-primary-400 to-teal-400" />
                                             </div>
                                         )}

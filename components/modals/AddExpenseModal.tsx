@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Dropdown } from '@/components/ui/Dropdown';
+import { DatePicker } from '@/components/ui/DatePicker';
 import { useToast } from '@/components/ui/Toast';
 
 interface AddExpenseModalProps {
@@ -15,11 +16,16 @@ export function AddExpenseModal({ tripId }: AddExpenseModalProps) {
     const { showToast } = useToast();
     const [isOpen, setIsOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<{
+        description: string;
+        amount: string;
+        category: string;
+        date: Date;
+    }>({
         description: '',
         amount: '',
         category: 'other',
-        date: new Date().toISOString().split('T')[0],
+        date: new Date(),
     });
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -49,7 +55,7 @@ export function AddExpenseModal({ tripId }: AddExpenseModalProps) {
                 description: '',
                 amount: '',
                 category: 'other',
-                date: new Date().toISOString().split('T')[0],
+                date: new Date(),
             });
             router.refresh();
         } catch (error) {
@@ -103,13 +109,10 @@ export function AddExpenseModal({ tripId }: AddExpenseModalProps) {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Date</label>
-                            <input
-                                required
-                                type="date"
+                            <DatePicker
+                                label="Date"
                                 value={formData.date}
-                                onChange={e => setFormData({ ...formData, date: e.target.value })}
-                                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                                onChange={(date) => setFormData({ ...formData, date })}
                             />
                         </div>
                     </div>

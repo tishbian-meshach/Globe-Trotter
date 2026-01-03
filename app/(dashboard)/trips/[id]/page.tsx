@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { formatDateRange, getTripDuration, formatCurrency } from '@/lib/utils';
+import { EditTripButton } from '@/components/trips/EditTripButton';
 
 interface PageProps {
     params: {
@@ -63,6 +64,18 @@ export default async function TripDetailPage({ params }: PageProps) {
 
     return (
         <div className="space-y-8">
+            {trip.coverImage && (
+                <div className="w-full h-64 md:h-80 relative rounded-2xl overflow-hidden mb-6">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                        src={trip.coverImage}
+                        alt={trip.name}
+                        className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                </div>
+            )}
+
             {/* Header */}
             <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -102,6 +115,7 @@ export default async function TripDetailPage({ params }: PageProps) {
                 </div>
 
                 <div className="flex gap-2">
+                    <EditTripButton trip={trip} />
                     <Link
                         href={`/trips/${trip.id}/budget`}
                         className="px-4 py-2 border-2 border-slate-200 rounded-xl hover:border-primary-500 transition-colors"

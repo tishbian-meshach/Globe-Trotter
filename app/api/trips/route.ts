@@ -54,6 +54,7 @@ export async function POST(request: NextRequest) {
             data: {
                 name: validatedData.name,
                 description: validatedData.description || null,
+                coverImage: validatedData.coverImage || null,
                 startDate: validatedData.startDate,
                 endDate: validatedData.endDate,
                 userId: session.user.id,
