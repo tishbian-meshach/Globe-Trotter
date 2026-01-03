@@ -5,6 +5,7 @@ export const middleware = auth((req) => {
     const isLoggedIn = !!req.auth;
     const isAuthPage = req.nextUrl.pathname.startsWith('/login') ||
         req.nextUrl.pathname.startsWith('/signup');
+    const isRootPath = req.nextUrl.pathname === '/';
 
     if (isAuthPage) {
         if (isLoggedIn) {
@@ -13,7 +14,12 @@ export const middleware = auth((req) => {
         return NextResponse.next();
     }
 
-    if (!isLoggedIn && !req.nextUrl.pathname.startsWith('/share')) {
+    // Allow root path and share pages without authentication
+    if (isRootPath || req.nextUrl.pathname.startsWith('/share')) {
+        return NextResponse.next();
+    }
+
+    if (!isLoggedIn) {
         return NextResponse.redirect(new URL('/login', req.url));
     }
 
